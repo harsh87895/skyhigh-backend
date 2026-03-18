@@ -1,7 +1,6 @@
-﻿# Architecture Document
-# SkyHigh Core - Digital Check-In System
+﻿# SkyHigh Core - Architecture Document
 
-**Version:** 1.0  
+**Version:** 1.0
 **Date:** March 15, 2026
 
 ---
@@ -17,9 +16,10 @@
 7. [Concurrency Control](#7-concurrency-control)
 8. [Caching Strategy](#8-caching-strategy)
 9. [Background Processing](#9-background-processing)
-10. [Scalability & Performance](#10-scalability--performance)
+10. [Scalability and Performance](#10-scalability-and-performance)
 11. [Security Considerations](#11-security-considerations)
 12. [Deployment Architecture](#12-deployment-architecture)
+13. [Summary](#13-summary)
 
 ---
 
@@ -31,76 +31,46 @@ SkyHigh Core is a distributed digital check-in system designed to handle high-co
 
 ### Key Requirements
 
-- **Conflict-Free Seat Assignment:** No double bookings under concurrent load
-- **Time-Bound Reservations:** 120-second seat holds with automatic expiration
-- **High Performance:** P95 < 1 second for seat map retrieval
-- **Scalability:** Support 500+ concurrent users
-- **Reliability:** 99.9% uptime during check-in windows
+| Requirement | Detail |
+|---|---|
+| Conflict-Free Seat Assignment | No double bookings under concurrent load |
+| Time-Bound Reservations | 120-second seat holds with automatic expiration |
+| High Performance | P95 under 1 second for seat map retrieval |
+| Scalability | Support 500+ concurrent users |
+| Reliability | 99.9% uptime during check-in windows |
 
 ---
 
 ## 2. High-Level Architecture
 
-### System Context Diagram
+### System Context
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                     External Systems                            â”‚
-â”‚                                                                 â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”         â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                     â”‚
-â”‚  â”‚   Passenger  â”‚         â”‚   Airport    â”‚                     â”‚
-â”‚  â”‚   (Mobile)   â”‚         â”‚    Kiosk     â”‚                     â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜         â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜                     â”‚
-â”‚          â”‚                        â”‚                            â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-           â”‚                        â”‚
-           â”‚      HTTPS / REST      â”‚
-           â”‚                        â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                  Load Balancer (Future)                        â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                            â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚               SkyHigh Core Application Layer                   â”‚
-â”‚                                                                 â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”‚
-â”‚  â”‚          Spring Boot REST API (Stateless)              â”‚   â”‚
-â”‚  â”‚                                                         â”‚   â”‚
-â”‚  â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”             â”‚   â”‚
-â”‚  â”‚  â”‚ Check-In â”‚  â”‚   Seat   â”‚  â”‚ Baggage  â”‚             â”‚   â”‚
-â”‚  â”‚  â”‚Controllerâ”‚  â”‚Controllerâ”‚  â”‚Controllerâ”‚             â”‚   â”‚
-â”‚  â”‚  â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜             â”‚   â”‚
-â”‚  â”‚       â”‚             â”‚             â”‚                    â”‚   â”‚
-â”‚  â”‚  â”Œâ”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”             â”‚   â”‚
-â”‚  â”‚  â”‚        Business Logic Layer          â”‚             â”‚   â”‚
-â”‚  â”‚  â”‚  (Services with Transaction Mgmt)    â”‚             â”‚   â”‚
-â”‚  â”‚  â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜             â”‚   â”‚
-â”‚  â”‚       â”‚             â”‚             â”‚                    â”‚   â”‚
-â”‚  â”‚  â”Œâ”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”             â”‚   â”‚
-â”‚  â”‚  â”‚     Data Access Layer (Repositories) â”‚             â”‚   â”‚
-â”‚  â”‚  â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜             â”‚   â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚
-â”‚          â”‚             â”‚             â”‚                        â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”       â”‚       â”Œâ”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”            â”‚
-â”‚  â”‚ Background  â”‚       â”‚       â”‚   Cache Layer  â”‚            â”‚
-â”‚  â”‚    Jobs     â”‚       â”‚       â”‚   (Redis)      â”‚            â”‚
-â”‚  â”‚ (Scheduler) â”‚       â”‚       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜            â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜       â”‚                                      â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                         â”‚
-                         â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                  Persistence Layer                            â”‚
-â”‚                                                                â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”          â”‚
-â”‚  â”‚   PostgreSQL     â”‚          â”‚      Redis       â”‚          â”‚
-â”‚  â”‚   (Primary DB)   â”‚          â”‚     (Cache)      â”‚          â”‚
-â”‚  â”‚                  â”‚          â”‚                  â”‚          â”‚
-â”‚  â”‚  - ACID trans    â”‚          â”‚  - TTL: 2s       â”‚          â”‚
-â”‚  â”‚  - Optimistic    â”‚          â”‚  - Seat maps     â”‚          â”‚
-â”‚  â”‚    locking       â”‚          â”‚                  â”‚          â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜          â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜          â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+[Passenger Mobile App]        [Airport Kiosk]
+         |                          |
+         |        HTTPS REST        |
+         +----------+---------------+
+                    |
+            [Load Balancer]
+                    |
+         +----------+----------+
+         |                     |
+ [Spring Boot REST API]        |
+  - CheckIn Controller         |
+  - Seat Controller            |
+  - Baggage Controller         |
+  - Payment Controller         |
+         |                     |
+ [Business Logic Layer]        |
+ [Data Access Layer]           |
+         |                     |
+ [Background Jobs]    [Redis Cache]
+  (ShedLock)           (TTL 2s)
+         |
+   +-----+-----+
+   |           |
+[PostgreSQL] [Redis]
+(Primary DB) (Cache)
 ```
 
 ---
@@ -110,461 +80,402 @@ SkyHigh Core is a distributed digital check-in system designed to handle high-co
 ### Layered Architecture
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                    Presentation Layer                       â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”â”‚
-â”‚  â”‚ CheckIn   â”‚  â”‚  Flight   â”‚  â”‚   Seat    â”‚  â”‚ Baggage  â”‚â”‚
-â”‚  â”‚Controller â”‚  â”‚ Controllerâ”‚  â”‚ Controllerâ”‚  â”‚Controllerâ”‚â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜â”‚
-â”‚        â”‚              â”‚              â”‚              â”‚       â”‚
-â”‚        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜       â”‚
-â”‚                         â”‚                                   â”‚
-â”‚              REST API (JSON over HTTP)                      â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                          â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                    Service Layer (Business Logic)           â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”‚
-â”‚  â”‚  CheckIn     â”‚  â”‚    Seat      â”‚  â”‚   Baggage    â”‚     â”‚
-â”‚  â”‚  Service     â”‚  â”‚  Service     â”‚  â”‚   Service    â”‚     â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”‚
-â”‚  â”‚  SeatHold    â”‚  â”‚   Payment    â”‚  â”‚   Flight     â”‚     â”‚
-â”‚  â”‚  Service     â”‚  â”‚  Service     â”‚  â”‚   Service    â”‚     â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â”‚
-â”‚                                                             â”‚
-â”‚  Responsibilities:                                          â”‚
-â”‚  - Business rule validation                                 â”‚
-â”‚  - Transaction management (@Transactional)                  â”‚
-â”‚  - Orchestration between entities                           â”‚
-â”‚  - Exception handling                                       â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                          â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚              Data Access Layer (Repositories)               â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
-â”‚  â”‚ Passenger  â”‚ â”‚   Flight   â”‚ â”‚    Seat    â”‚ â”‚CheckIn  â”‚ â”‚
-â”‚  â”‚ Repository â”‚ â”‚ Repository â”‚ â”‚ Repository â”‚ â”‚Repositryâ”‚ â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                             â”‚
-â”‚  â”‚  SeatHold  â”‚ â”‚  Baggage   â”‚                             â”‚
-â”‚  â”‚ Repository â”‚ â”‚ Repository â”‚                             â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                             â”‚
-â”‚                                                             â”‚
-â”‚  Responsibilities:                                          â”‚
-â”‚  - CRUD operations (Spring Data JPA)                        â”‚
-â”‚  - Custom queries                                           â”‚
-â”‚  - Optimistic locking                                       â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                          â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                    Domain Model Layer                       â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
-â”‚  â”‚ Passenger  â”‚ â”‚   Flight   â”‚ â”‚    Seat    â”‚ â”‚CheckIn  â”‚ â”‚
-â”‚  â”‚  Entity    â”‚ â”‚   Entity   â”‚ â”‚   Entity   â”‚ â”‚ Entity  â”‚ â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                             â”‚
-â”‚  â”‚  SeatHold  â”‚ â”‚  Baggage   â”‚                             â”‚
-â”‚  â”‚   Entity   â”‚ â”‚   Entity   â”‚                             â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                             â”‚
-â”‚                                                             â”‚
-â”‚  + Enums: SeatStatus, CheckInStatus, SeatClass, etc.       â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
++--------------------------------------------------+
+|              PRESENTATION LAYER                  |
+|  CheckInController  |  FlightController          |
+|  SeatController     |  BaggageController         |
+|  PaymentController                               |
++--------------------------------------------------+
+                       |
+               REST API - JSON over HTTP
+                       |
++--------------------------------------------------+
+|               SERVICE LAYER                      |
+|  CheckInService  |  SeatService                  |
+|  SeatHoldService |  BaggageService               |
+|  PaymentService  |  FlightService                |
+|                                                  |
+|  Responsibilities:                               |
+|  - Business rule validation                      |
+|  - Transaction management (@Transactional)       |
+|  - Orchestration between entities                |
+|  - Exception handling                            |
++--------------------------------------------------+
+                       |
++--------------------------------------------------+
+|          DATA ACCESS LAYER (Repositories)        |
+|  PassengerRepository  |  FlightRepository        |
+|  SeatRepository       |  CheckInRepository       |
+|  SeatHoldRepository   |  BaggageRepository       |
+|                                                  |
+|  Responsibilities:                               |
+|  - CRUD via Spring Data JPA                      |
+|  - Custom JPQL queries                           |
+|  - Optimistic locking                            |
++--------------------------------------------------+
+                       |
++--------------------------------------------------+
+|              DOMAIN MODEL LAYER                  |
+|  Entities: Passenger, Flight, Seat, CheckIn,     |
+|            SeatHold, Baggage                     |
+|  Enums:    SeatStatus, CheckInStatus,            |
+|            SeatClass, HoldStatus, PaymentStatus  |
++--------------------------------------------------+
 ```
 
 ### Cross-Cutting Concerns
 
-```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                  Cross-Cutting Concerns                     â”‚
-â”‚                                                             â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”        â”‚
-â”‚  â”‚   Caching   â”‚  â”‚   Logging   â”‚  â”‚  Exception  â”‚        â”‚
-â”‚  â”‚  (Redis)    â”‚  â”‚  (Slf4j)    â”‚  â”‚   Handling  â”‚        â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜        â”‚
-â”‚                                                             â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”        â”‚
-â”‚  â”‚ Scheduling  â”‚  â”‚ Validation  â”‚  â”‚  Monitoring â”‚        â”‚
-â”‚  â”‚ (ShedLock)  â”‚  â”‚  (Jakarta)  â”‚  â”‚  (Actuator) â”‚        â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜        â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-```
+| Concern | Technology |
+|---|---|
+| Caching | Redis with @Cacheable |
+| Logging | SLF4J + Logback |
+| Exception Handling | @ControllerAdvice / GlobalExceptionHandler |
+| Scheduling | Spring Scheduler + ShedLock |
+| Input Validation | Jakarta Validation (@Valid) |
+| Monitoring | Spring Boot Actuator |
 
 ---
 
 ## 4. Database Schema
 
-### Entity Relationship Diagram (ERD)
+### Entity Relationships
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚   passengers     â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ passenger_id (PK)â”‚â”€â”€â”€â”
-â”‚ first_name       â”‚   â”‚
-â”‚ last_name        â”‚   â”‚
-â”‚ email            â”‚   â”‚
-â”‚ phone            â”‚   â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚
-                       â”‚
-                       â”‚ 1
-                       â”‚
-                       â”‚ *
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”‚      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚     flights      â”‚   â”‚      â”‚   check_ins      â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤   â”‚      â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ flight_id (PK)   â”‚â”€â”€â”€â”¼â”€â”€â”€â”€â”€â–¶â”‚ check_in_id (PK) â”‚
-â”‚ flight_number    â”‚   â”‚   â”Œâ”€â”€â”‚ passenger_id (FK)â”‚
-â”‚ origin           â”‚   â”‚   â”‚  â”‚ flight_id (FK)   â”‚
-â”‚ destination      â”‚   â”‚   â”‚  â”‚ booking_referenceâ”‚
-â”‚ departure_time   â”‚   â””â”€â”€â”€â”˜  â”‚ seat_number      â”‚
-â”‚ arrival_time     â”‚          â”‚ status           â”‚
-â”‚ status           â”‚          â”‚ baggage_weight   â”‚
-â”‚ check_in_opens_atâ”‚          â”‚ payment_required â”‚
-â”‚check_in_closes_atâ”‚          â”‚ payment_status   â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜          â”‚ created_at       â”‚
-        â”‚                     â”‚ completed_at     â”‚
-        â”‚ 1                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-        â”‚                              â”‚
-        â”‚ *                            â”‚ 1
-        â”‚                              â”‚
-â”Œâ”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                   â”‚ *
-â”‚      seats       â”‚                   â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ seat_id (PK)     â”‚â”€â”€â”€â”      â”‚    baggage       â”‚
-â”‚ flight_id (FK)   â”‚   â”‚      â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚ seat_number      â”‚   â”‚      â”‚ baggage_id (PK)  â”‚
-â”‚ row_number       â”‚   â”‚      â”‚ check_in_id (FK) â”‚
-â”‚ column_letter    â”‚   â”‚      â”‚ weight           â”‚
-â”‚ seat_class       â”‚   â”‚      â”‚ pieces           â”‚
-â”‚ position         â”‚   â”‚      â”‚ excess_weight    â”‚
-â”‚ status           â”‚   â”‚      â”‚ excess_fee       â”‚
-â”‚ price            â”‚   â”‚      â”‚ payment_txn_id   â”‚
-â”‚ version âš¡       â”‚   â”‚      â”‚ validated_at     â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚
-                       â”‚ 1
-                       â”‚
-                       â”‚ *
-              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-              â”‚   seat_holds     â”‚
-              â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-              â”‚ hold_id (PK)     â”‚
-              â”‚ seat_id (FK)     â”‚
-              â”‚ check_in_id (FK) â”‚
-              â”‚ status           â”‚
-              â”‚ held_at          â”‚
-              â”‚ expires_at       â”‚
-              â”‚ confirmed_at     â”‚
-              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+passengers
+  - passenger_id (PK)
+  - first_name
+  - last_name
+  - email
+  - phone
+        |
+        | one passenger --> many check-ins
+        |
+check_ins
+  - check_in_id (PK)
+  - passenger_id (FK -> passengers)
+  - flight_id    (FK -> flights)
+  - booking_reference
+  - seat_number
+  - status
+  - baggage_weight
+  - payment_required
+  - payment_status
+  - created_at
+  - completed_at
+        |
+        | one check-in --> many baggage records
+        |
+baggage
+  - baggage_id (PK)
+  - check_in_id (FK -> check_ins)
+  - weight
+  - pieces
+  - excess_weight
+  - excess_fee
+  - payment_transaction_id
+  - validated_at
 
-âš¡ = Optimistic locking version field
+
+flights
+  - flight_id (PK)
+  - flight_number
+  - origin
+  - destination
+  - departure_time
+  - arrival_time
+  - aircraft_type
+  - status
+  - check_in_opens_at
+  - check_in_closes_at
+        |
+        | one flight --> many seats
+        |
+seats
+  - seat_id (PK)
+  - flight_id (FK -> flights)
+  - seat_number
+  - row_number
+  - column_letter
+  - seat_class
+  - position
+  - status
+  - price
+  - version  <-- optimistic locking field
+        |
+        | one seat --> many holds
+        |
+seat_holds
+  - hold_id (PK)
+  - seat_id     (FK -> seats)
+  - check_in_id (FK -> check_ins)
+  - status
+  - held_at
+  - expires_at  (= held_at + 120 seconds)
+  - confirmed_at
 ```
+
+---
 
 ### Table Definitions
 
-#### `passengers`
+#### passengers
 
-| Column        | Type         | Constraints | Description              |
-|---------------|--------------|-------------|--------------------------|
-| passenger_id  | VARCHAR(50)  | PK          | Unique passenger ID      |
-| first_name    | VARCHAR(100) | NOT NULL    | First name               |
-| last_name     | VARCHAR(100) | NOT NULL    | Last name                |
-| email         | VARCHAR(150) | NOT NULL    | Email address            |
-| phone         | VARCHAR(20)  |             | Phone number (optional)  |
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| passenger_id | VARCHAR(50) | PK | Unique passenger ID |
+| first_name | VARCHAR(100) | NOT NULL | First name |
+| last_name | VARCHAR(100) | NOT NULL | Last name |
+| email | VARCHAR(150) | NOT NULL | Email address |
+| phone | VARCHAR(20) | optional | Phone number |
 
 ---
 
-#### `flights`
+#### flights
 
-| Column             | Type         | Constraints | Description                 |
-|--------------------|--------------|-------------|-----------------------------|
-| flight_id          | VARCHAR(20)  | PK          | Unique flight ID            |
-| flight_number      | VARCHAR(10)  | NOT NULL    | Flight number (e.g., SK123) |
-| origin             | VARCHAR(3)   | NOT NULL    | Origin airport code         |
-| destination        | VARCHAR(3)   | NOT NULL    | Destination airport code    |
-| departure_time     | TIMESTAMP    | NOT NULL    | Departure datetime          |
-| arrival_time       | TIMESTAMP    | NOT NULL    | Arrival datetime            |
-| aircraft_type      | VARCHAR(20)  | NOT NULL    | Aircraft model              |
-| status             | VARCHAR(20)  | NOT NULL    | Flight status (enum)        |
-| check_in_opens_at  | TIMESTAMP    |             | Check-in window opens       |
-| check_in_closes_at | TIMESTAMP    |             | Check-in window closes      |
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| flight_id | VARCHAR(20) | PK | Unique flight ID |
+| flight_number | VARCHAR(10) | NOT NULL | e.g. SK123 |
+| origin | VARCHAR(3) | NOT NULL | Origin airport code |
+| destination | VARCHAR(3) | NOT NULL | Destination airport code |
+| departure_time | TIMESTAMP | NOT NULL | Departure datetime |
+| arrival_time | TIMESTAMP | NOT NULL | Arrival datetime |
+| aircraft_type | VARCHAR(20) | NOT NULL | Aircraft model |
+| status | VARCHAR(20) | NOT NULL | Flight status enum |
+| check_in_opens_at | TIMESTAMP | optional | Check-in window open time |
+| check_in_closes_at | TIMESTAMP | optional | Check-in window close time |
+
+---
+
+#### seats
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| seat_id | UUID | PK | Unique seat ID |
+| flight_id | VARCHAR(20) | FK flights | Associated flight |
+| seat_number | VARCHAR(10) | NOT NULL | e.g. 12A |
+| row_number | INTEGER | NOT NULL | Row number |
+| column_letter | VARCHAR(2) | NOT NULL | Column letter |
+| seat_class | VARCHAR(20) | NOT NULL | ECONOMY / BUSINESS / FIRST |
+| position | VARCHAR(20) | NOT NULL | WINDOW / MIDDLE / AISLE |
+| status | VARCHAR(20) | NOT NULL | AVAILABLE / HELD / CONFIRMED |
+| price | DECIMAL(10,2) | NOT NULL | Seat price |
+| version | BIGINT | DEFAULT 0 | Optimistic locking version |
 
 **Indexes:**
-- Primary key: `flight_id`
+- Primary key on seat_id
+- Composite index on (flight_id, seat_number) for fast lookups
+- Index on status for filtering available seats
 
 ---
 
-#### `seats`
+#### check_ins
 
-| Column        | Type          | Constraints       | Description                     |
-|---------------|---------------|-------------------|---------------------------------|
-| seat_id       | UUID          | PK                | Unique seat ID                  |
-| flight_id     | VARCHAR(20)   | FK (flights)      | Associated flight               |
-| seat_number   | VARCHAR(10)   | NOT NULL          | Seat number (e.g., "12A")       |
-| row_number    | INTEGER       | NOT NULL          | Row number                      |
-| column_letter | VARCHAR(2)    | NOT NULL          | Column letter                   |
-| seat_class    | VARCHAR(20)   | NOT NULL          | ECONOMY, BUSINESS, FIRST        |
-| position      | VARCHAR(20)   | NOT NULL          | WINDOW, MIDDLE, AISLE           |
-| status        | VARCHAR(20)   | NOT NULL          | AVAILABLE, HELD, CONFIRMED      |
-| price         | DECIMAL(10,2) | NOT NULL          | Seat price                      |
-| **version**   | **BIGINT**    | **DEFAULT 0**     | **Optimistic locking version**  |
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| check_in_id | UUID | PK | Unique check-in ID |
+| passenger_id | VARCHAR(50) | FK passengers | Passenger reference |
+| flight_id | VARCHAR(20) | FK flights | Flight reference |
+| booking_reference | VARCHAR(10) | NOT NULL | Booking confirmation code |
+| seat_number | VARCHAR(10) | optional | Assigned seat after selection |
+| status | VARCHAR(20) | NOT NULL | INITIATED / AWAITING_PAYMENT / COMPLETED |
+| baggage_weight | DECIMAL(10,2) | optional | Declared baggage weight |
+| payment_required | BOOLEAN | optional | Excess baggage fee required |
+| payment_status | VARCHAR(20) | optional | Payment status |
+| created_at | TIMESTAMP | NOT NULL | Check-in start time |
+| completed_at | TIMESTAMP | optional | Check-in completion time |
+
+**Unique Constraint:** (passenger_id, flight_id) - one check-in per passenger per flight
+
+---
+
+#### seat_holds
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| hold_id | UUID | PK | Unique hold ID |
+| seat_id | UUID | FK seats | Seat being held |
+| check_in_id | UUID | FK check_ins | Associated check-in |
+| status | VARCHAR(20) | NOT NULL | HELD / CONFIRMED / EXPIRED |
+| held_at | TIMESTAMP | NOT NULL | Hold start time |
+| expires_at | TIMESTAMP | NOT NULL | held_at + 120 seconds |
+| confirmed_at | TIMESTAMP | optional | Confirmation timestamp |
 
 **Indexes:**
-- Primary key: `seat_id`
-- Composite: `(flight_id, seat_number)` for fast lookups
-- Index: `status` for filtering available seats
-
-**Concurrency Control:**
-- `version` field enables optimistic locking
-- Increments on every update
-- Prevents concurrent modifications
+- Composite index on (status, expires_at) used by the expiration job
 
 ---
 
-#### `check_ins`
+#### baggage
 
-| Column            | Type          | Constraints           | Description                    |
-|-------------------|---------------|-----------------------|--------------------------------|
-| check_in_id       | UUID          | PK                    | Unique check-in ID             |
-| passenger_id      | VARCHAR(50)   | FK (passengers)       | Passenger reference            |
-| flight_id         | VARCHAR(20)   | FK (flights)          | Flight reference               |
-| booking_reference | VARCHAR(10)   | NOT NULL              | Booking confirmation code      |
-| seat_number       | VARCHAR(10)   |                       | Assigned seat (after selection)|
-| status            | VARCHAR(20)   | NOT NULL              | INITIATED, AWAITING_PAYMENT, etc.|
-| baggage_weight    | DECIMAL(10,2) |                       | Declared baggage weight        |
-| payment_required  | BOOLEAN       |                       | Excess baggage fee required?   |
-| payment_status    | VARCHAR(20)   |                       | Payment status                 |
-| created_at        | TIMESTAMP     | NOT NULL              | Check-in start time            |
-| completed_at      | TIMESTAMP     |                       | Check-in completion time       |
-
-**Unique Constraint:**
-- `(passenger_id, flight_id)` - One check-in per passenger per flight
-
-**Indexes:**
-- Primary key: `check_in_id`
-- Unique: `(passenger_id, flight_id)`
-- Index: `status` for filtering
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| baggage_id | UUID | PK | Unique baggage ID |
+| check_in_id | UUID | FK check_ins | Associated check-in |
+| weight | DECIMAL(10,2) | NOT NULL | Total weight in kg |
+| pieces | INTEGER | NOT NULL | Number of pieces |
+| excess_weight | DECIMAL(10,2) | optional | Weight over 25 kg |
+| excess_fee | DECIMAL(10,2) | optional | Fee for excess weight |
+| payment_transaction_id | VARCHAR(100) | optional | Payment transaction reference |
+| validated_at | TIMESTAMP | NOT NULL | Validation timestamp |
 
 ---
 
-#### `seat_holds`
+#### shedlock
 
-| Column        | Type       | Constraints       | Description                     |
-|---------------|------------|-------------------|---------------------------------|
-| hold_id       | UUID       | PK                | Unique hold ID                  |
-| seat_id       | UUID       | FK (seats)        | Seat being held                 |
-| check_in_id   | UUID       | FK (check_ins)    | Associated check-in             |
-| status        | VARCHAR(20)| NOT NULL          | HELD, CONFIRMED, EXPIRED        |
-| held_at       | TIMESTAMP  | NOT NULL          | Hold start time                 |
-| expires_at    | TIMESTAMP  | NOT NULL          | Hold expiration time (held_at + 120s)|
-| confirmed_at  | TIMESTAMP  |                   | Confirmation timestamp          |
-
-**Business Rule:**
-- `expires_at = held_at + 120 seconds`
-
-**Indexes:**
-- Primary key: `hold_id`
-- Index: `seat_id` for seat lookup
-- Index: `check_in_id` for check-in lookup
-- Composite: `(status, expires_at)` for expiration job
-
----
-
-#### `baggage`
-
-| Column              | Type          | Constraints       | Description                     |
-|---------------------|---------------|-------------------|---------------------------------|
-| baggage_id          | UUID          | PK                | Unique baggage ID               |
-| check_in_id         | UUID          | FK (check_ins)    | Associated check-in             |
-| weight              | DECIMAL(10,2) | NOT NULL          | Total weight (kg)               |
-| pieces              | INTEGER       | NOT NULL          | Number of pieces                |
-| excess_weight       | DECIMAL(10,2) |                   | Weight over 25kg                |
-| excess_fee          | DECIMAL(10,2) |                   | Fee for excess weight           |
-| payment_transaction_id | VARCHAR(100)|                | Payment transaction reference   |
-| validated_at        | TIMESTAMP     | NOT NULL          | Validation timestamp            |
-
-**Indexes:**
-- Primary key: `baggage_id`
-- Index: `check_in_id` for lookup
-
----
-
-#### `shedlock` (Distributed Locking)
-
-| Column      | Type         | Constraints | Description                 |
-|-------------|--------------|-------------|-----------------------------|
-| name        | VARCHAR(64)  | PK          | Lock name (job identifier)  |
-| lock_until  | TIMESTAMP    | NOT NULL    | Lock valid until            |
-| locked_at   | TIMESTAMP    | NOT NULL    | Lock acquisition time       |
-| locked_by   | VARCHAR(255) | NOT NULL    | Instance identifier         |
-
-**Purpose:** Ensures only one instance of a scheduled job runs at a time.
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| name | VARCHAR(64) | PK | Lock name / job identifier |
+| lock_until | TIMESTAMP | NOT NULL | Lock valid until this time |
+| locked_at | TIMESTAMP | NOT NULL | Lock acquisition time |
+| locked_by | VARCHAR(255) | NOT NULL | Instance that holds the lock |
 
 ---
 
 ## 5. Technology Stack
 
-### Core Technologies
+| Layer | Technology | Version | Purpose |
+|---|---|---|---|
+| Backend Framework | Spring Boot | 3.2.3 | Application framework |
+| Language | Java | 17 | Programming language |
+| Build Tool | Maven | 3.8+ | Dependency management and build |
+| Database | PostgreSQL | 15 | Primary relational database |
+| Cache | Redis | 7 | In-memory cache |
+| ORM | Hibernate / JPA | 6.x | Object-relational mapping |
+| Migration | Flyway | Latest | Database schema versioning |
+| Scheduler | Spring Scheduler | 3.2.3 | Background job scheduling |
+| Distributed Lock | ShedLock | 5.9.0 | Prevent duplicate job execution |
+| Resilience | Resilience4j | 2.1.0 | Circuit breaker and retry |
+| API Docs | Swagger / OpenAPI | 3.x | API documentation |
+| Logging | SLF4J + Logback | Latest | Structured logging |
+| Testing | JUnit 5 + Mockito | Latest | Unit and integration testing |
+| Containerization | Docker + Docker Compose | Latest | Packaging and deployment |
 
-| Layer                | Technology             | Version | Purpose                          |
-|----------------------|------------------------|---------|----------------------------------|
-| **Backend Framework**| Spring Boot            | 3.2.3   | Application framework            |
-| **Language**         | Java                   | 17      | Programming language             |
-| **Build Tool**       | Maven                  | 3.8+    | Dependency management & build    |
-| **Database**         | PostgreSQL             | 15      | Primary relational database      |
-| **Cache**            | Redis                  | 7       | In-memory cache                  |
-| **ORM**              | Hibernate/JPA          | 6.x     | Object-relational mapping        |
-| **Migration**        | Flyway                 | Latest  | Database schema versioning       |
-| **Scheduler**        | Spring Scheduler       | 3.2.3   | Background job scheduling        |
-| **Distributed Lock** | ShedLock               | 5.9.0   | Prevent duplicate job execution  |
-| **Resilience**       | Resilience4j           | 2.1.0   | Circuit breaker, retry           |
-| **API Docs**         | Swagger/OpenAPI        | 3.x     | API documentation                |
-| **Logging**          | SLF4J + Logback        | Latest  | Structured logging               |
-| **Testing**          | JUnit 5 + Mockito      | Latest  | Unit & integration testing       |
-| **Containerization** | Docker + Docker Compose| Latest  | Application packaging & deployment|
+### Key Dependencies
 
----
+```
+Spring Boot Starters:
+  spring-boot-starter-web
+  spring-boot-starter-data-jpa
+  spring-boot-starter-data-redis
+  spring-boot-starter-validation
+  spring-boot-starter-cache
+  spring-boot-starter-actuator
 
-### Key Libraries
+Database:
+  postgresql
+  flyway-core
 
-```xml
-<!-- Spring Boot Starters -->
-spring-boot-starter-web
-spring-boot-starter-data-jpa
-spring-boot-starter-data-redis
-spring-boot-starter-validation
-spring-boot-starter-cache
-spring-boot-starter-actuator
+Utilities:
+  lombok
 
-<!-- Database -->
-postgresql (runtime)
-flyway-core
+Resilience:
+  resilience4j-spring-boot3
+  resilience4j-circuitbreaker
+  resilience4j-retry
 
-<!-- Utilities -->
-lombok (compile-time code generation)
-
-<!-- Resilience -->
-resilience4j-spring-boot3
-resilience4j-circuitbreaker
-resilience4j-retry
-
-<!-- Distributed Locking -->
-shedlock-spring
-shedlock-provider-jdbc-template
+Distributed Locking:
+  shedlock-spring
+  shedlock-provider-jdbc-template
 ```
 
 ---
 
 ## 6. Data Flow
 
-### Seat Hold Data Flow
+### Seat Hold Flow (Step by Step)
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ Client   â”‚
-â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”˜
-      â”‚ 1. POST /api/v1/seats/hold
-      â”‚    {seatId, checkInId}
-      â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ SeatController  â”‚
-â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-      â”‚ 2. Validate request
-      â”‚
-      â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚ SeatHoldService  â”‚
-â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-      â”‚ 3. @Transactional begin
-      â”‚
-      â”œâ”€â”€â–¶ SeatRepository.findBySeatIdAndStatus(seatId, AVAILABLE)
-      â”‚    â”œâ”€ SELECT * FROM seats
-      â”‚    â”‚  WHERE seat_id = ? AND status = 'AVAILABLE' AND version = ?
-      â”‚    â”‚  FOR UPDATE (optimistic lock)
-      â”‚    â”‚
-      â”‚    â””â”€ If not found: throw SeatUnavailableException
-      â”‚
-      â”œâ”€â”€â–¶ seat.setStatus(HELD)
-      â”‚    seat.setVersion(version + 1)
-      â”‚
-      â”œâ”€â”€â–¶ SeatRepository.save(seat)
-      â”‚    â”œâ”€ UPDATE seats
-      â”‚    â”‚  SET status = 'HELD', version = version + 1
-      â”‚    â”‚  WHERE seat_id = ? AND version = ?
-      â”‚    â”‚
-      â”‚    â””â”€ If rows affected = 0: throw OptimisticLockException
-      â”‚
-      â”œâ”€â”€â–¶ Create SeatHold entity
-      â”‚    â”œâ”€ holdId = UUID.randomUUID()
-      â”‚    â”œâ”€ seatId = seat.getSeatId()
-      â”‚    â”œâ”€ checkInId = request.getCheckInId()
-      â”‚    â”œâ”€ status = HELD
-      â”‚    â”œâ”€ heldAt = Instant.now()
-      â”‚    â””â”€ expiresAt = heldAt.plusSeconds(120)
-      â”‚
-      â”œâ”€â”€â–¶ SeatHoldRepository.save(hold)
-      â”‚    â””â”€ INSERT INTO seat_holds (...)
-      â”‚
-      â””â”€â”€â–¶ @Transactional commit
-           â”‚
-           â–¼
-      Return HoldResponse
+Client
+  |
+  |  POST /api/v1/seats/hold
+  |  Body: { seatId, checkInId }
+  |
+  v
+SeatController
+  - Validates request with @Valid
+  |
+  v
+SeatHoldService  (@Transactional)
+  |
+  Step 1: Find seat WHERE seat_id = ? AND status = AVAILABLE
+          --> If not found, throw SeatUnavailableException
+  |
+  Step 2: Update seat status to HELD
+          UPDATE seats
+          SET status = HELD, version = version + 1
+          WHERE seat_id = ? AND version = ?
+          --> If 0 rows updated, throw OptimisticLockException
+              (another request got there first)
+  |
+  Step 3: Create SeatHold record
+          hold_id    = new UUID
+          status     = HELD
+          held_at    = now()
+          expires_at = now() + 120 seconds
+  |
+  Step 4: INSERT into seat_holds table
+  |
+  Step 5: Commit transaction
+  |
+  v
+Return HoldSeatResponse
+  { holdId, seatNumber, expiresAt }
 ```
 
 ---
 
 ## 7. Concurrency Control
 
-### Optimistic Locking Strategy
+### Problem
 
-**Problem:** Multiple passengers attempting to hold the same seat simultaneously.
+Multiple passengers can try to hold the same seat at exactly the same time. Without protection, two passengers could both get confirmed for seat 12A.
 
-**Solution:** Optimistic locking with version field.
+### Solution: Optimistic Locking
 
-#### How It Works
+Every row in the seats table has a `version` column. Every time the row is updated, the version increments by 1. Before updating, the query checks the version matches what was read. If another request already updated it, the version will not match and the update fails.
+
+### Timeline Example
 
 ```
-Time    Passenger A                    Database                    Passenger B
-â”€â”€â”€â”€â”€   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-T0      Read seat 12A (version=5)      seat 12A: version=5        Read seat 12A (version=5)
-        
-T1      Modify: status = HELD          
-        
-T2      UPDATE seats                   UPDATE executed
-        SET status='HELD',             version incremented to 6
-        version=6                      Passenger A: SUCCESS âœ“
-        WHERE id=? AND version=5
-        
-T3                                                                 UPDATE seats
-                                                                   SET status='HELD',
-                                                                   version=6
-                                                                   WHERE id=? AND version=5
-                                                                   
-T4                                      No rows updated!           Passenger B: FAIL âœ—
-                                        (version is now 6, not 5)  OptimisticLockException
+Time    Passenger A              Database (seat 12A)     Passenger B
+----    -----------              -------------------     -----------
+
+T0      Read seat                version = 5             Read seat
+        (version = 5)                                    (version = 5)
+
+T1      Set status = HELD
+
+T2      UPDATE seats             Version becomes 6       
+        WHERE version = 5        SUCCESS for A
+        --> 1 row updated
+
+T3                                                       UPDATE seats
+                                                         WHERE version = 5
+                                                         --> 0 rows updated
+                                                         FAIL for B
+T4                               Version is now 6        SeatUnavailableException
 ```
 
-#### JPA Configuration
+### JPA Configuration
 
 ```java
 @Entity
 @Table(name = "seats")
 public class Seat {
+
     @Id
     private UUID seatId;
-    
+
     @Enumerated(EnumType.STRING)
     private SeatStatus status;
-    
-    @Version  // â† Enables optimistic locking
-    private Long version;
-    
-    // ...
+
+    @Version
+    private Long version;  // Spring/JPA handles incrementing automatically
 }
 ```
 
-#### Transaction Isolation
+### Transaction Isolation Level
 
 ```yaml
 spring:
@@ -572,57 +483,40 @@ spring:
     properties:
       hibernate:
         connection:
-          isolation: 2  # READ_COMMITTED
+          isolation: 2   # READ_COMMITTED
 ```
 
 ---
 
 ## 8. Caching Strategy
 
+### Why Cache?
+
+The seat map endpoint is the most frequently called API. Querying the full seat list for a flight on every request would overload the database under high concurrency.
+
 ### Cache-Aside Pattern
 
-**Use Case:** Seat map retrieval (most frequently accessed data)
-
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  Client  â”‚
-â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”˜
-      â”‚ GET /api/v1/flights/{flightId}/seats
-      â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚SeatService  â”‚
-â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
-      â”‚
-      â”œâ”€ Check Redis cache: key="seatMap:{flightId}"
-      â”‚
-      â–¼
-  â”Œâ”€â”€â”€â”€â”€â”€â”€â”
-  â”‚ Cache â”‚
-  â”‚ Hit?  â”‚
-  â””â”€â”€â”€â”¬â”€â”€â”€â”˜
-      â”‚
-      â”œâ”€ YES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-      â”‚                                  â”‚
-      â”‚                                  â–¼
-      â”‚                          Return cached data
-      â”‚                          (Fast path)
-      â”‚
-      â””â”€ NO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-                                         â”‚
-                                         â–¼
-                                 Query PostgreSQL
-                                 SELECT * FROM seats
-                                 WHERE flight_id = ?
-                                         â”‚
-                                         â–¼
-                                 Store in Redis
-                                 TTL = 2 seconds
-                                         â”‚
-                                         â–¼
-                                 Return fresh data
+Client
+  |
+  |  GET /api/v1/flights/{flightId}/seats
+  |
+  v
+SeatService
+  |
+  |-- Check Redis for key: seatMap:{flightId}
+  |
+  +-- CACHE HIT
+  |     Return data immediately (no DB query)
+  |
+  +-- CACHE MISS
+        Query PostgreSQL:
+          SELECT * FROM seats WHERE flight_id = ?
+        Save result to Redis with TTL = 2 seconds
+        Return data to client
 ```
 
-### Redis Configuration
+### Configuration
 
 ```yaml
 spring:
@@ -631,37 +525,31 @@ spring:
       host: localhost
       port: 6379
       timeout: 2000ms
-  
   cache:
     type: redis
     redis:
-      time-to-live: 2000  # 2 seconds
+      time-to-live: 2000
 ```
 
-### Service Implementation
+### Service Code
 
 ```java
 @Service
 public class SeatService {
-    
+
     @Cacheable(value = "seatMap", key = "#flightId")
     public List<Seat> getSeatMap(String flightId) {
-        log.info("Cache MISS - Fetching from database: {}", flightId);
         return seatRepository.findByFlightId(flightId);
+    }
+
+    @CacheEvict(value = "seatMap", key = "#flightId")
+    public void invalidateSeatMap(String flightId) {
+        // called after any seat status change
     }
 }
 ```
 
-### Cache Invalidation (Optional)
-
-```java
-@CacheEvict(value = "seatMap", key = "#flightId")
-public void invalidateSeatMap(String flightId) {
-    // Called when seat status changes
-}
-```
-
-**Trade-off:** 2-second cache TTL balances performance vs. data freshness.
+**Note:** The 2-second TTL is a deliberate trade-off. It keeps read latency under the P95 target of 1 second while still showing near-real-time seat availability.
 
 ---
 
@@ -669,61 +557,53 @@ public void invalidateSeatMap(String flightId) {
 
 ### Seat Hold Expiration Job
 
-**Purpose:** Automatically release seats held for >120 seconds.
+**Purpose:** Release seats that have been held for more than 120 seconds so other passengers can book them.
 
-#### Architecture
+**Frequency:** Runs every 10 seconds.
+
+### Flow
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚               Application Instance 1                        â”‚
-â”‚                                                             â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”‚
-â”‚  â”‚  Spring Scheduler (Cron: every 10s)                 â”‚   â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚
-â”‚              â”‚                                             â”‚
-â”‚              â–¼                                             â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”   â”‚
-â”‚  â”‚  ShedLock - Acquire Lock "SeatHoldExpirationJob"   â”‚   â”‚
-â”‚  â”‚  - lockAtLeastFor: 5s                               â”‚   â”‚
-â”‚  â”‚  - lockAtMostFor: 9s                                â”‚   â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   â”‚
-â”‚              â”‚                                             â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-               â”‚
-               â–¼
-      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-      â”‚  PostgreSQL    â”‚
-      â”‚  shedlock      â”‚
-      â”‚  table         â”‚
-      â””â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
-               â”‚ Lock acquired (or skip if locked)
-               â”‚
-               â–¼
-    Execute job only on ONE instance
-    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-    â”‚ 1. Find expired holds:          â”‚
-    â”‚    SELECT * FROM seat_holds     â”‚
-    â”‚    WHERE status='HELD'          â”‚
-    â”‚      AND expires_at < NOW()     â”‚
-    â”‚                                 â”‚
-    â”‚ 2. For each expired hold:       â”‚
-    â”‚    - Update seat: HELDâ†’AVAILABLEâ”‚
-    â”‚    - Update hold: HELDâ†’EXPIRED  â”‚
-    â”‚                                 â”‚
-    â”‚ 3. Log expiration               â”‚
-    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-               â”‚
-               â–¼
-    Release lock after completion
+Every 10 seconds:
+  Spring Scheduler triggers SeatHoldExpirationJob
+    |
+    v
+  ShedLock checks: is this job already running on another instance?
+    |
+    +-- YES --> Skip. Do nothing.
+    |
+    +-- NO  --> Acquire lock and run job:
+                  |
+                  Step 1: Find all expired holds
+                          SELECT * FROM seat_holds
+                          WHERE status = 'HELD'
+                          AND expires_at < NOW()
+                  |
+                  Step 2: For each expired hold:
+                          - Set seat status:  HELD --> AVAILABLE
+                          - Set hold status:  HELD --> EXPIRED
+                          - Save both records
+                  |
+                  Step 3: Log how many holds were expired
+                  |
+                  Release lock
 ```
 
-#### Code Implementation
+### ShedLock Settings
+
+| Setting | Value | Purpose |
+|---|---|---|
+| lockAtLeastFor | 5 seconds | Minimum time the lock is held |
+| lockAtMostFor | 9 seconds | Maximum time before lock auto-releases (failsafe) |
+| Schedule interval | 10 seconds | How often the job runs |
+
+### Code
 
 ```java
 @Component
 @Slf4j
 public class SeatHoldExpirationJob {
-    
+
     @Scheduled(fixedRateString = "${app.seat-hold.expiration-job-rate}")
     @SchedulerLock(
         name = "SeatHoldExpirationJob",
@@ -731,72 +611,46 @@ public class SeatHoldExpirationJob {
         lockAtMostFor = "9s"
     )
     public void expireHolds() {
-        log.info("Starting seat hold expiration job");
-        
-        List<SeatHold> expiredHolds = seatHoldRepository
-            .findExpiredHolds(Instant.now());
-        
-        for (SeatHold hold : expiredHolds) {
-            // Update seat status
+        List<SeatHold> expired = seatHoldRepository.findExpiredHolds(Instant.now());
+
+        for (SeatHold hold : expired) {
             Seat seat = seatRepository.findById(hold.getSeatId()).orElseThrow();
             seat.setStatus(SeatStatus.AVAILABLE);
             seatRepository.save(seat);
-            
-            // Update hold status
+
             hold.setStatus(HoldStatus.EXPIRED);
             seatHoldRepository.save(hold);
-            
-            log.info("Expired hold {} for seat {}", 
-                hold.getHoldId(), seat.getSeatNumber());
+
+            log.info("Expired hold {} for seat {}", hold.getHoldId(), seat.getSeatNumber());
         }
-        
-        log.info("Expired {} holds", expiredHolds.size());
+
+        log.info("Total holds expired this run: {}", expired.size());
     }
 }
 ```
 
 ---
 
-## 10. Scalability & Performance
+## 10. Scalability and Performance
 
 ### Horizontal Scaling
 
-**Design Principle:** Stateless application instances
+The application is fully stateless. No session or user data is stored in application memory. Multiple instances can run simultaneously behind a load balancer, all sharing the same PostgreSQL database and Redis cache.
 
 ```
-                     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-                     â”‚Load Balancer â”‚
-                     â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
-                            â”‚
-          â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-          â”‚                 â”‚                 â”‚
-          â–¼                 â–¼                 â–¼
-    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-    â”‚ App      â”‚      â”‚ App      â”‚      â”‚ App      â”‚
-    â”‚Instance 1â”‚      â”‚Instance 2â”‚      â”‚Instance 3â”‚
-    â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜
-         â”‚                 â”‚                 â”‚
-         â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                           â”‚
-              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-              â”‚                         â”‚
-              â–¼                         â–¼
-        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-        â”‚PostgreSQLâ”‚              â”‚  Redis   â”‚
-        â”‚ (Shared) â”‚              â”‚ (Shared) â”‚
-        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+          [Load Balancer]
+                |
+    +-----------+-----------+
+    |           |           |
+[Instance 1] [Instance 2] [Instance 3]
+    |           |           |
+    +-----+-----+-----------+
+          |           |
+    [PostgreSQL]   [Redis]
+     Shared DB    Shared Cache
 ```
 
-**Key Features:**
-- No session state in application
-- Shared database and cache
-- ShedLock prevents duplicate background jobs
-
----
-
-### Performance Optimizations
-
-#### 1. Database Connection Pooling
+### Database Connection Pool (HikariCP)
 
 ```yaml
 spring:
@@ -807,7 +661,7 @@ spring:
       connection-timeout: 30000
 ```
 
-#### 2. Redis Connection Pooling
+### Redis Connection Pool (Lettuce)
 
 ```yaml
 spring:
@@ -820,60 +674,58 @@ spring:
           min-idle: 2
 ```
 
-#### 3. Database Indexes
+### Database Indexes
 
-- `idx_seat_flight_number` on `(flight_id, seat_number)`
-- `idx_seat_status` on `status`
-- `idx_hold_status_expires` on `(status, expires_at)`
-
-#### 4. Query Optimization
-
-```java
-// Fetch only necessary fields
-@Query("SELECT new com.skyhigh.core.dto.SeatDTO(s.seatId, s.seatNumber, s.status) " +
-       "FROM Seat s WHERE s.flightId = :flightId")
-List<SeatDTO> findSeatMapProjection(@Param("flightId") String flightId);
-```
+| Index Name | Columns | Why |
+|---|---|---|
+| idx_seat_flight_number | (flight_id, seat_number) | Fast individual seat lookup |
+| idx_seat_status | status | Filter available seats quickly |
+| idx_hold_status_expires | (status, expires_at) | Expiration job performance |
 
 ---
 
 ## 11. Security Considerations
 
-### Current Implementation
+### Currently Implemented
 
-- **Input Validation:** Jakarta Validation (`@NotNull`, `@Positive`, etc.)
-- **SQL Injection Prevention:** Parameterized queries via JPA
-- **Error Handling:** No sensitive data in error responses
+| Area | How |
+|---|---|
+| Input Validation | Jakarta Bean Validation on all request DTOs |
+| SQL Injection Prevention | JPA parameterized queries - no raw SQL |
+| Safe Error Responses | Exception handler strips sensitive info from responses |
 
-### Future Enhancements
+### Planned for Future
 
-1. **Authentication:** JWT tokens
-2. **Authorization:** Role-based access control (RBAC)
-3. **Rate Limiting:** Prevent abuse
-4. **HTTPS:** TLS encryption in transit
-5. **Data Encryption:** Sensitive data encryption at rest
+1. **Authentication** - JWT-based token authentication
+2. **Authorization** - Role-based access control (passenger vs staff vs admin)
+3. **Rate Limiting** - Per-IP and per-user request throttling
+4. **HTTPS** - TLS termination at load balancer
+5. **Encryption at Rest** - Sensitive passenger data encrypted in DB
 
 ---
 
 ## 12. Deployment Architecture
 
-### Docker Compose Deployment
+### Local Development (Docker Compose)
 
 ```yaml
 services:
   postgres:
     image: postgres:15-alpine
-    ports: ["5432:5432"]
-    volumes: [postgres_data:/var/lib/postgresql/data]
-  
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
-    volumes: [redis_data:/data]
-  
+    ports:
+      - "6379:6379"
+
   app:
     build: .
-    ports: ["8080:8080"]
+    ports:
+      - "8080:8080"
     depends_on:
       - postgres
       - redis
@@ -882,61 +734,54 @@ services:
       SPRING_DATA_REDIS_HOST: redis
 ```
 
-### Production Deployment (Future)
+### Production (Cloud / Kubernetes)
 
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                       Cloud Provider                       â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
-â”‚  â”‚         Application Load Balancer (ALB)              â”‚ â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
-â”‚                       â”‚                                    â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
-â”‚  â”‚  Auto Scaling Group â”‚                                 â”‚ â”‚
-â”‚  â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”                 â”‚ â”‚
-â”‚  â”‚  â”‚App (K8sâ”‚  â”‚App (K8sâ”‚  â”‚App (K8sâ”‚                 â”‚ â”‚
-â”‚  â”‚  â”‚  Pod)  â”‚  â”‚  Pod)  â”‚  â”‚  Pod)  â”‚                 â”‚ â”‚
-â”‚  â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”˜                 â”‚ â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
-â”‚                       â”‚                                    â”‚
-â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
-â”‚  â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”â”‚ â”‚
-â”‚  â”‚  â”‚   RDS          â”‚â”‚  â”‚   ElastiCache (Redis)      â”‚â”‚ â”‚
-â”‚  â”‚  â”‚  (PostgreSQL)  â”‚â”‚  â”‚   - Multi-AZ               â”‚â”‚ â”‚
-â”‚  â”‚  â”‚  - Multi-AZ    â”‚â”‚  â”‚   - Cluster mode           â”‚â”‚ â”‚
-â”‚  â”‚  â”‚  - Read replicaâ”‚â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜â”‚ â”‚
-â”‚  â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜â”‚                                 â”‚ â”‚
-â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+[Application Load Balancer]
+            |
+  +---------+---------+
+  |         |         |
+[Pod 1]  [Pod 2]  [Pod 3]   <-- Kubernetes Deployment / Auto Scaling
+  |         |         |
+  +---------+---------+
+            |
+  +---------+---------+
+  |                   |
+[RDS PostgreSQL]  [ElastiCache Redis]
+  Multi-AZ            Multi-AZ
+  Read Replica        Cluster Mode
 ```
 
 ---
 
-## Summary
+## 13. Summary
 
-### Architectural Highlights
+### Architecture at a Glance
 
-1. **Layered Architecture:** Clear separation of concerns (Controller â†’ Service â†’ Repository â†’ Entity)
-2. **Optimistic Locking:** Prevents seat conflicts using database version field
-3. **Caching Strategy:** Redis cache-aside pattern with 2-second TTL
-4. **Background Jobs:** Distributed scheduled tasks with ShedLock
-5. **Stateless Design:** Enables horizontal scaling
-6. **ACID Transactions:** PostgreSQL ensures data consistency
-7. **Fault Tolerance:** Circuit breaker and retry patterns
+| Layer | Technology | Role |
+|---|---|---|
+| API | Spring Boot REST | Handles HTTP requests |
+| Business Logic | Spring Services | Enforces business rules |
+| Data Access | Spring Data JPA | Database operations |
+| Database | PostgreSQL | Persistent storage with ACID |
+| Cache | Redis | Fast seat map reads |
+| Scheduler | Spring + ShedLock | Background hold expiration |
+| Resilience | Resilience4j | Circuit breaker and retry |
 
 ### Key Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| Optimistic Locking | Better performance than pessimistic locks for read-heavy workload |
-| 2-second Cache TTL | Balance between performance (P95 < 1s) and data freshness |
-| 120-second Hold | Business requirement for user decision time |
-| ShedLock | Prevent duplicate job execution in multi-instance deployment |
-| PostgreSQL | ACID compliance, mature ecosystem, excellent concurrency control |
-| Redis | High-performance caching, sub-millisecond latency |
+| Decision | Reason |
+|---|---|
+| Optimistic Locking | Handles concurrent seat holds without database-level locks, better performance at scale |
+| 2-second Cache TTL | Achieves P95 under 1s read latency while keeping seat map data fresh enough |
+| 120-second Hold Timer | Gives passengers enough time to complete check-in without permanently blocking a seat |
+| ShedLock for Scheduling | Ensures only one instance runs the expiration job even when multiple app instances are running |
+| Stateless Application | Allows horizontal scaling - any instance can handle any request |
+| PostgreSQL | ACID transactions needed for payment and seat assignment correctness |
+| Redis | Sub-millisecond reads needed for high-traffic seat map endpoint |
 
 ---
 
-**Last Updated:** March 15, 2026  
+**Last Updated:** March 15, 2026
 **Maintained By:** SkyHigh Airlines Engineering Team
 
