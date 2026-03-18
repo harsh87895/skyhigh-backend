@@ -1,0 +1,1162 @@
+﻿{
+  "info": {
+    "_postman_id": "skyhigh-core-api-collection",
+    "name": "SkyHigh Core - Digital Check-In API",
+    "description": "Complete API collection for SkyHigh Airlines Digital Check-In System.\n\nPrerequisites:\n1. Start services: docker-compose up --build\n2. App runs at http://localhost:8080\n\nSample data loaded automatically:\n- Passengers: P001 (John Doe), P002 (Jane Smith), P003-P005\n- Flights: SK101 (LAX to JFK), SK102 (JFK to LAX)\n- Seats: 30 economy seats for SK101 (rows 1-5, columns A-F)\n\nRun folders in order for end-to-end flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base URL of the SkyHigh Core API"
+    },
+    {
+      "key": "checkInId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-populated from Start Check-In response"
+    },
+    {
+      "key": "holdId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-populated from Hold Seat response"
+    }
+  ],
+  "item": [
+    {
+      "name": "Happy Path - Full Check-In Flow (Run In Order)",
+      "description": "Complete end-to-end check-in: no excess baggage, no payment required.\nOrder: Step1 > Step2 > Step3 > Step4 > Step5 > Step6",
+      "item": [
+        {
+          "name": "Step 1 - Start Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Has checkInId', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.checkInId).to.be.a('string');",
+                  "    pm.collectionVariables.set('checkInId', json.checkInId);",
+                  "});",
+                  "pm.test('Status is IN_PROGRESS', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('IN_PROGRESS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P001\",\n  \"flightId\": \"SK101\",\n  \"bookingReference\": \"BK001001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "start"]
+            },
+            "description": "POST /api/v1/check-in/start\n\nInitiate check-in for passenger P001 on flight SK101.\nSaves checkInId to collection variable automatically."
+          }
+        },
+        {
+          "name": "Step 2 - Browse Seat Map",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Has seats array', function () {",
+                  "    pm.expect(pm.response.json().seats).to.be.an('array').and.have.lengthOf.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"]
+            },
+            "description": "GET /api/v1/flights/{flightId}/seats\n\nFetch full seat map for SK101. Cached in Redis (2s TTL) for P95 < 1s."
+          }
+        },
+        {
+          "name": "Step 3 - Validate Baggage (20kg - within free limit)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Payment NOT required for 20kg', function () {",
+                  "    pm.expect(pm.response.json().paymentRequired).to.eql(false);",
+                  "});",
+                  "pm.test('No excess fee', function () {",
+                  "    pm.expect(pm.response.json().excessFee).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": 20.0,\n  \"pieces\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "POST /api/v1/baggage/validate\n\n20kg baggage - within the 25kg free limit. No payment required.\nFee formula: (weight - 25) * 10 per kg. Result: $0."
+          }
+        },
+        {
+          "name": "Step 4 - Hold Seat 1A (120s reservation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Has holdId', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.holdId).to.be.a('string');",
+                  "    pm.collectionVariables.set('holdId', json.holdId);",
+                  "});",
+                  "pm.test('Hold is ACTIVE', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('ACTIVE');",
+                  "});",
+                  "pm.test('About 120 seconds remaining', function () {",
+                  "    pm.expect(pm.response.json().remainingSeconds).to.be.within(115, 120);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"flightId\": \"SK101\",\n  \"seatNumber\": \"1A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/hold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "hold"]
+            },
+            "description": "POST /api/v1/seats/hold\n\nReserve seat 1A using pessimistic locking (SELECT FOR UPDATE).\nOnly ONE passenger can hold this seat simultaneously.\nHold expires after 120 seconds. Saves holdId to collection variable."
+          }
+        },
+        {
+          "name": "Step 5 - Confirm Seat 1A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Seat CONFIRMED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('CONFIRMED');",
+                  "});",
+                  "pm.test('Seat number is 1A', function () {",
+                  "    pm.expect(pm.response.json().seatNumber).to.eql('1A');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holdId\": \"{{holdId}}\",\n  \"checkInId\": \"{{checkInId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "confirm"]
+            },
+            "description": "POST /api/v1/seats/confirm\n\nPermanently assign seat 1A. Must be done within 120 seconds.\nSeat transitions: HELD -> CONFIRMED (immutable)."
+          }
+        },
+        {
+          "name": "Step 6 - Complete Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Check-in COMPLETED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('COMPLETED');",
+                  "});",
+                  "pm.test('completedAt is set', function () {",
+                  "    pm.expect(pm.response.json().completedAt).to.not.be.null;",
+                  "});",
+                  "pm.test('Seat 1A assigned', function () {",
+                  "    pm.expect(pm.response.json().seatNumber).to.eql('1A');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/{{checkInId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "{{checkInId}}", "complete"]
+            },
+            "description": "POST /api/v1/check-in/{checkInId}/complete\n\nFinalize the check-in. Requires seat to be CONFIRMED.\nSets status to COMPLETED and records completedAt timestamp."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Excess Baggage Payment Flow (Run In Order)",
+      "description": "End-to-end flow for passenger with baggage over 25kg free limit.\nOrder: Step1 > Step2 (excess fee) > Step3 (payment) > Step4 > Step5 > Step6",
+      "item": [
+        {
+          "name": "Step 1 - Start Check-In (P002)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('checkInId', pm.response.json().checkInId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P002\",\n  \"flightId\": \"SK101\",\n  \"bookingReference\": \"BK002001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "start"]
+            }
+          }
+        },
+        {
+          "name": "Step 2 - Validate Excess Baggage (30kg = $50 fee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Payment IS required', function () {",
+                  "    pm.expect(pm.response.json().paymentRequired).to.eql(true);",
+                  "});",
+                  "pm.test('Excess fee is $50 (5kg * $10)', function () {",
+                  "    pm.expect(pm.response.json().excessFee).to.eql(50.00);",
+                  "});",
+                  "pm.test('Excess weight is 5kg', function () {",
+                  "    pm.expect(pm.response.json().excessWeight).to.eql(5.0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": 30.0,\n  \"pieces\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "30kg baggage: 5kg over limit. Fee = 5 * $10 = $50.\nCheck-in status becomes AWAITING_PAYMENT."
+          }
+        },
+        {
+          "name": "Step 3 - Process Payment ($50)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Payment succeeded', function () {",
+                  "    pm.expect(pm.response.json().success).to.eql(true);",
+                  "});",
+                  "pm.test('Transaction ID generated', function () {",
+                  "    pm.expect(pm.response.json().transactionId).to.match(/^TXN-/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"amount\": 50.00,\n  \"paymentMethod\": \"CREDIT_CARD\",\n  \"cardToken\": \"tok_mock_visa_4242\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payment/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payment", "process"]
+            },
+            "description": "MOCK payment endpoint - always succeeds.\nCheck-in status resumes to IN_PROGRESS after payment."
+          }
+        },
+        {
+          "name": "Step 4 - Hold Seat 2A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('holdId', pm.response.json().holdId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"flightId\": \"SK101\",\n  \"seatNumber\": \"2A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/hold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "hold"]
+            }
+          }
+        },
+        {
+          "name": "Step 5 - Confirm Seat 2A",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holdId\": \"{{holdId}}\",\n  \"checkInId\": \"{{checkInId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Step 6 - Complete Check-In",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/{{checkInId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "{{checkInId}}", "complete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check-In APIs",
+      "description": "POST /api/v1/check-in/start\nGET  /api/v1/check-in/{checkInId}\nPOST /api/v1/check-in/{checkInId}/complete\nDELETE /api/v1/check-in/{checkInId}",
+      "item": [
+        {
+          "name": "Start Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('checkInId', pm.response.json().checkInId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P003\",\n  \"flightId\": \"SK101\",\n  \"bookingReference\": \"BK003001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "start"]
+            },
+            "description": "POST /api/v1/check-in/start\n\nRequest body:\n- passengerId (string, required): P001-P005 (pre-loaded)\n- flightId (string, required): SK101 or SK102\n- bookingReference (string, required): any string\n\nReturns 201 with checkInId.\nErrors: 404 flight not found, 409 duplicate check-in."
+          }
+        },
+        {
+          "name": "Get Check-In by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/{{checkInId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "{{checkInId}}"]
+            },
+            "description": "GET /api/v1/check-in/{checkInId}\n\nRetrieve check-in details. Returns 404 if not found."
+          }
+        },
+        {
+          "name": "Complete Check-In",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/{{checkInId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "{{checkInId}}", "complete"]
+            },
+            "description": "POST /api/v1/check-in/{checkInId}/complete\n\nPrerequisites:\n1. Seat must be CONFIRMED\n2. No pending payment (not AWAITING_PAYMENT)\n\nSets status to COMPLETED."
+          }
+        },
+        {
+          "name": "Cancel Check-In",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/{{checkInId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "{{checkInId}}"]
+            },
+            "description": "DELETE /api/v1/check-in/{checkInId}\n\nCancels check-in and releases any active seat holds.\nReturns 204 No Content."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flight and Seat Map APIs",
+      "description": "GET /api/v1/flights/{flightId}/seats\nGET /api/v1/flights/{flightId}/seats?seatClass=ECONOMY&position=WINDOW\nGET /api/v1/flights/{flightId}/seats/available/count\n\nCached in Redis with 2s TTL. P95 < 1s.",
+      "item": [
+        {
+          "name": "Get Full Seat Map - SK101",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Has seats', function () {",
+                  "    pm.expect(pm.response.json().seats).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"]
+            },
+            "description": "Returns all seats for SK101 with their status.\nCached 2 seconds in Redis. First call is DB query, subsequent within 2s are cache hits."
+          }
+        },
+        {
+          "name": "Get Seat Map - Economy Class Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats?seatClass=ECONOMY",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"],
+              "query": [{ "key": "seatClass", "value": "ECONOMY" }]
+            },
+            "description": "Filter by seatClass. Options: ECONOMY, BUSINESS, FIRST"
+          }
+        },
+        {
+          "name": "Get Seat Map - Window Seats Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats?position=WINDOW",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"],
+              "query": [{ "key": "position", "value": "WINDOW" }]
+            },
+            "description": "Filter by position. Options: WINDOW, MIDDLE, AISLE"
+          }
+        },
+        {
+          "name": "Get Seat Map - Economy Window Seats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats?seatClass=ECONOMY&position=WINDOW",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"],
+              "query": [
+                { "key": "seatClass", "value": "ECONOMY" },
+                { "key": "position", "value": "WINDOW" }
+              ]
+            },
+            "description": "Filter by both seatClass and position simultaneously."
+          }
+        },
+        {
+          "name": "Get Seat Map - Middle Seats Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats?position=MIDDLE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"],
+              "query": [{ "key": "position", "value": "MIDDLE" }]
+            }
+          }
+        },
+        {
+          "name": "Get Seat Map - Aisle Seats Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats?position=AISLE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats"],
+              "query": [{ "key": "position", "value": "AISLE" }]
+            }
+          }
+        },
+        {
+          "name": "Get Seat Map - SK102",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK102/seats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK102", "seats"]
+            },
+            "description": "Seat map for flight SK102 (JFK to LAX)."
+          }
+        },
+        {
+          "name": "Get Available Seats Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Count is a number', function () {",
+                  "    pm.expect(pm.response.json()).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/SK101/seats/available/count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "SK101", "seats", "available", "count"]
+            },
+            "description": "GET /api/v1/flights/{flightId}/seats/available/count\n\nReturns integer count of AVAILABLE seats for the flight."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seat Hold and Confirm APIs",
+      "description": "POST /api/v1/seats/hold   - Reserve seat for 120 seconds\nPOST /api/v1/seats/confirm - Permanently assign held seat\n\nUses pessimistic locking (SELECT FOR UPDATE) - only one passenger can hold a seat at a time.",
+      "item": [
+        {
+          "name": "Hold a Seat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('holdId', pm.response.json().holdId);",
+                  "}",
+                  "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Hold is ACTIVE', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('ACTIVE');",
+                  "});",
+                  "pm.test('Expires in ~120s', function () {",
+                  "    pm.expect(pm.response.json().remainingSeconds).to.be.within(115, 120);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"flightId\": \"SK101\",\n  \"seatNumber\": \"3B\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/hold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "hold"]
+            },
+            "description": "POST /api/v1/seats/hold\n\nRequest body:\n- checkInId (UUID, required)\n- flightId (string, required)\n- seatNumber (string, required): e.g. 1A, 2C, 5F\n\nReturns 201 with holdId, expiresAt, remainingSeconds.\nErrors:\n- 409 seat already HELD or CONFIRMED\n- 422 check-in not IN_PROGRESS\n- 404 check-in or seat not found"
+          }
+        },
+        {
+          "name": "Confirm Seat Hold",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Status is CONFIRMED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('CONFIRMED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"holdId\": \"{{holdId}}\",\n  \"checkInId\": \"{{checkInId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "confirm"]
+            },
+            "description": "POST /api/v1/seats/confirm\n\nRequest body:\n- holdId (UUID, required): from Hold Seat response\n- checkInId (UUID, required): must own the hold\n\nMust be done within 120 seconds of hold.\nSeat transitions HELD -> CONFIRMED (permanent, immutable).\nErrors:\n- 410 hold expired\n- 422 hold not ACTIVE or wrong check-in\n- 404 hold not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Baggage APIs",
+      "description": "POST /api/v1/baggage/validate  - Declare weight, get fee\nGET  /api/v1/baggage/{checkInId} - Get baggage details\n\nFree allowance: 25kg. Fee: $10 per kg over limit.",
+      "item": [
+        {
+          "name": "Validate Baggage - 20kg (no fee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": 20.0,\n  \"pieces\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "20kg: within 25kg free limit. paymentRequired=false. excessFee=null."
+          }
+        },
+        {
+          "name": "Validate Baggage - 25kg (boundary, no fee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": 25.0,\n  \"pieces\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "Exactly 25kg: at the free limit boundary. paymentRequired=false."
+          }
+        },
+        {
+          "name": "Validate Baggage - 30kg ($50 fee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": 30.0,\n  \"pieces\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "30kg: 5kg excess. Fee = 5 * $10 = $50. paymentRequired=true. Status -> AWAITING_PAYMENT."
+          }
+        },
+        {
+          "name": "Validate Baggage - 35kg ($100 fee)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": 35.0,\n  \"pieces\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "35kg: 10kg excess. Fee = 10 * $10 = $100. paymentRequired=true."
+          }
+        },
+        {
+          "name": "Get Baggage Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/{{checkInId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "{{checkInId}}"]
+            },
+            "description": "GET /api/v1/baggage/{checkInId}\n\nRetrieve baggage info by check-in ID. Returns 404 if not validated yet."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment APIs",
+      "description": "POST /api/v1/payment/process\n\nMOCK endpoint - always succeeds. Simulates 500ms processing delay.\nIn production: integrate with real payment gateway.",
+      "item": [
+        {
+          "name": "Process Payment - Credit Card ($50)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Payment success=true', function () {",
+                  "    pm.expect(pm.response.json().success).to.eql(true);",
+                  "});",
+                  "pm.test('Transaction ID format TXN-', function () {",
+                  "    pm.expect(pm.response.json().transactionId).to.match(/^TXN-/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"amount\": 50.00,\n  \"paymentMethod\": \"CREDIT_CARD\",\n  \"cardToken\": \"tok_mock_visa_4242\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payment/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payment", "process"]
+            },
+            "description": "POST /api/v1/payment/process\n\nRequest body:\n- checkInId (UUID, required): must be in AWAITING_PAYMENT status\n- amount (decimal, required): must match excess fee\n- paymentMethod (string, required): CREDIT_CARD, DEBIT_CARD, UPI\n- cardToken (string, optional): mock token\n\nAlways returns success=true with a TXN-XXXXXXXX transaction ID.\nResumes check-in to IN_PROGRESS status."
+          }
+        },
+        {
+          "name": "Process Payment - UPI ($100)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"amount\": 100.00,\n  \"paymentMethod\": \"UPI\",\n  \"cardToken\": \"upi-mock-9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payment/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payment", "process"]
+            },
+            "description": "Process $100 excess baggage fee via UPI. Also a MOCK - always succeeds."
+          }
+        },
+        {
+          "name": "Process Payment - Debit Card ($30)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"amount\": 30.00,\n  \"paymentMethod\": \"DEBIT_CARD\",\n  \"cardToken\": \"tok_mock_debit_5454\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payment/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payment", "process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Scenario Tests",
+      "description": "Tests for error conditions - 400, 404, 409, 410, 422",
+      "item": [
+        {
+          "name": "404 - Start Check-In with Invalid Flight",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Error message mentions flight', function () {",
+                  "    pm.expect(pm.response.json().message).to.include('INVALID_FLIGHT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P001\",\n  \"flightId\": \"INVALID_FLIGHT\",\n  \"bookingReference\": \"BK999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "start"]
+            }
+          }
+        },
+        {
+          "name": "409 - Duplicate Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 409 Conflict', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P001\",\n  \"flightId\": \"SK101\",\n  \"bookingReference\": \"BK001001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "start"]
+            },
+            "description": "Run after the Happy Path flow. P001 already has check-in for SK101. Expects 409."
+          }
+        },
+        {
+          "name": "409 - Hold an Already Held Seat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 409 Conflict', function () { pm.response.to.have.status(409); });",
+                  "pm.test('Message mentions seat unavailable', function () {",
+                  "    pm.expect(pm.response.json().message).to.include('not available');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"flightId\": \"SK101\",\n  \"seatNumber\": \"1A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/hold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "hold"]
+            },
+            "description": "Run after Happy Path. Seat 1A is CONFIRMED. Expects 409."
+          }
+        },
+        {
+          "name": "404 - Get Non-Existent Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404 Not Found', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "404 - Get Baggage for Non-Existent Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "400 - Start Check-In Missing Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/check-in/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "check-in", "start"]
+            },
+            "description": "Missing flightId and bookingReference. Bean Validation returns 400."
+          }
+        },
+        {
+          "name": "400 - Baggage Validate Negative Weight",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkInId}}\",\n  \"weight\": -5.0,\n  \"pieces\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/baggage/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "baggage", "validate"]
+            },
+            "description": "weight must be > 0. @DecimalMin annotation rejects negative values."
+          }
+        },
+        {
+          "name": "400 - Hold Seat Missing checkInId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"SK101\",\n  \"seatNumber\": \"1A\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seats/hold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "seats", "hold"]
+            },
+            "description": "checkInId is @NotNull - missing it causes 400."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health and Monitoring",
+      "description": "Spring Boot Actuator and API docs endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('App is UP', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('UP');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "GET /actuator/health\n\nShows UP/DOWN status of:\n- Application\n- PostgreSQL DB connection\n- Redis cache connection"
+          }
+        },
+        {
+          "name": "Application Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "prometheus"]
+            },
+            "description": "Prometheus scrape endpoint. Exposes HTTP latencies, cache hit/miss rates, DB pool stats, JVM metrics."
+          }
+        },
+        {
+          "name": "Swagger UI (open in browser)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/swagger-ui.html",
+              "host": ["{{baseUrl}}"],
+              "path": ["swagger-ui.html"]
+            },
+            "description": "Open in browser for interactive API exploration."
+          }
+        },
+        {
+          "name": "OpenAPI JSON Spec",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v3/api-docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v3", "api-docs"]
+            },
+            "description": "Raw OpenAPI 3.0 JSON spec for the SkyHigh Core API."
+          }
+        }
+      ]
+    }
+  ]
+}

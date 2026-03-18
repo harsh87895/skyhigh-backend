@@ -1,0 +1,469 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.skyhigh:skyhigh-core >----------------------
+[INFO] Building SkyHigh Core - Digital Check-In System 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ skyhigh-core ---
+[INFO] Deleting C:\Users\91878\Downloads\skyhigh-backend\target
+[INFO] 
+[INFO] --- jacoco:0.8.11:prepare-agent (prepare-agent) @ skyhigh-core ---
+[INFO] argLine set to -javaagent:C:\\Users\\91878\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.11\\org.jacoco.agent-0.8.11-runtime.jar=destfile=C:\\Users\\91878\\Downloads\\skyhigh-backend\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ skyhigh-core ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ skyhigh-core ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 58 source files with javac [debug release 17] to target\classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ skyhigh-core ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ skyhigh-core ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 7 source files with javac [debug release 17] to target\test-classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[INFO] 
+[INFO] --- surefire:3.0.0:test (default-test) @ skyhigh-core ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.skyhigh.core.model.SeatHoldTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.607 s - in com.skyhigh.core.model.SeatHoldTest
+[INFO] Running com.skyhigh.core.service.BaggageServiceTest
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\91878\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.12\byte-buddy-agent-1.14.12.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+14:00:17.481 [main] INFO com.skyhigh.core.service.BaggageService -- Updated baggage payment for check-in 2ca51832-848c-4bda-b024-d04026960176 with transaction TXN-12345678
+14:00:17.545 [main] INFO com.skyhigh.core.service.BaggageService -- Validating baggage for check-in 1feb03c4-390e-40d3-a350-b4e8351f88a5: weight=20.0kg, pieces=1
+14:00:17.545 [main] INFO com.skyhigh.core.service.BaggageService -- Baggage within free allowance: 20.0kg
+14:00:17.564 [main] INFO com.skyhigh.core.service.BaggageService -- Validating baggage for check-in 6f49dce4-9a90-47c6-8b25-b91e487cae79: weight=15.0kg, pieces=1
+14:00:17.564 [main] INFO com.skyhigh.core.service.BaggageService -- Baggage within free allowance: 15.0kg
+14:00:17.574 [main] INFO com.skyhigh.core.service.BaggageService -- Validating baggage for check-in b95df164-14fc-4cfa-93e2-7b0b9a609fc5: weight=30.0kg, pieces=2
+14:00:17.578 [main] INFO com.skyhigh.core.service.BaggageService -- Excess baggage detected: 5.0kg over limit. Fee: $50.00
+14:00:17.588 [main] INFO com.skyhigh.core.service.BaggageService -- Validating baggage for check-in 7ab63a24-7c54-4893-b6a5-33582adb76fd: weight=20.0kg, pieces=1
+14:00:17.588 [main] INFO com.skyhigh.core.service.BaggageService -- Baggage within free allowance: 20.0kg
+14:00:17.596 [main] INFO com.skyhigh.core.service.BaggageService -- Validating baggage for check-in c75b86db-fcf5-40e0-848f-5f085c3963a9: weight=20.0kg, pieces=1
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.065 s - in com.skyhigh.core.service.BaggageServiceTest
+[INFO] Running com.skyhigh.core.service.CheckInServiceTest
+14:00:18.099 [main] INFO com.skyhigh.core.service.CheckInService -- Completing check-in 5763cdcf-1007-4fb4-a258-74cfb4edaded
+14:00:18.131 [main] INFO com.skyhigh.core.service.CheckInService -- Starting check-in for passenger P001 on flight INVALID_FLIGHT
+14:00:18.131 [main] INFO com.skyhigh.core.service.CheckInService -- Completing check-in 9652491f-6d1a-4886-bf2c-880f2f8806a4
+14:00:18.163 [main] INFO com.skyhigh.core.service.CheckInService -- Completing check-in 995eb4b2-fb0f-4143-a5f1-fc35fbcf5e4d
+14:00:18.163 [main] INFO com.skyhigh.core.service.CheckInService -- Canceling check-in 4db07db8-c435-422c-a831-e44242a10f66
+14:00:18.163 [main] INFO com.skyhigh.core.service.CheckInService -- Check-in 4db07db8-c435-422c-a831-e44242a10f66 canceled
+14:00:18.179 [main] INFO com.skyhigh.core.service.CheckInService -- Starting check-in for passenger P001 on flight SK123
+14:00:18.179 [main] WARN com.skyhigh.core.service.CheckInService -- Passenger P001 not found, this would normally be validated against booking
+14:00:18.179 [main] INFO com.skyhigh.core.service.CheckInService -- Check-in null created for passenger P001 on flight SK123
+14:00:18.195 [main] INFO com.skyhigh.core.service.CheckInService -- Starting check-in for passenger P001 on flight SK123
+14:00:18.195 [main] WARN com.skyhigh.core.service.CheckInService -- Passenger P001 not found, this would normally be validated against booking
+14:00:18.195 [main] INFO com.skyhigh.core.service.CheckInService -- Check-in 5dc31e99-1c5f-43c7-82f6-95fca5a0e84c created for passenger P001 on flight SK123
+14:00:18.226 [main] INFO com.skyhigh.core.service.CheckInService -- Completing check-in 6b2d2d9b-4b8b-4f82-914d-70e01f3aeab8
+14:00:18.226 [main] INFO com.skyhigh.core.service.CheckInService -- Check-in 6b2d2d9b-4b8b-4f82-914d-70e01f3aeab8 completed successfully. Seat: 12A
+14:00:18.242 [main] INFO com.skyhigh.core.service.CheckInService -- Starting check-in for passenger P001 on flight SK123
+14:00:18.244 [main] WARN com.skyhigh.core.service.CheckInService -- Passenger P001 not found, this would normally be validated against booking
+14:00:18.258 [main] INFO com.skyhigh.core.service.CheckInService -- Canceling check-in f6662178-1bc9-4f93-b8ef-fc26c7866fce
+14:00:18.258 [main] INFO com.skyhigh.core.service.CheckInService -- Check-in f6662178-1bc9-4f93-b8ef-fc26c7866fce canceled
+14:00:18.268 [main] INFO com.skyhigh.core.service.CheckInService -- Completing check-in 515751e3-5529-4a70-9fa1-4974559093f1
+14:00:18.268 [main] WARN com.skyhigh.core.service.CheckInService -- Check-in 515751e3-5529-4a70-9fa1-4974559093f1 is already completed
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.649 s - in com.skyhigh.core.service.CheckInServiceTest
+[INFO] Running com.skyhigh.core.service.PaymentServiceTest
+14:00:18.307 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in 4be58086-94b5-471b-93ff-9cee6ed91f6f: amount=$50.0, method=CREDIT_CARD
+14:00:18.309 [main] WARN com.skyhigh.core.service.PaymentService -- Payment amount mismatch. Expected: null, Received: 50.0
+14:00:18.309 [main] INFO com.skyhigh.core.service.PaymentService -- Mock payment processing... Transaction ID: TXN-1F6336BD
+14:00:18.811 [main] INFO com.skyhigh.core.service.PaymentService -- Payment successful for check-in 4be58086-94b5-471b-93ff-9cee6ed91f6f: transaction=TXN-1F6336BD, amount=$50.0
+14:00:18.811 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in 827555c8-c319-4e5e-97c4-e50cfaba4708: amount=$50.0, method=CREDIT_CARD
+14:00:18.832 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in 5dc73d46-4054-4407-bffb-57e8ae3a825e: amount=$60.0, method=CREDIT_CARD
+14:00:18.832 [main] WARN com.skyhigh.core.service.PaymentService -- Payment amount mismatch. Expected: 50.0, Received: 60.0
+14:00:18.832 [main] INFO com.skyhigh.core.service.PaymentService -- Mock payment processing... Transaction ID: TXN-DA2C8F61
+14:00:19.337 [main] INFO com.skyhigh.core.service.PaymentService -- Payment successful for check-in 5dc73d46-4054-4407-bffb-57e8ae3a825e: transaction=TXN-DA2C8F61, amount=$60.0
+14:00:19.337 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in a4871377-3f6e-482a-b7e4-28838669653a: amount=$50.0, method=CREDIT_CARD
+14:00:19.353 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in 55ed71b7-4a43-446f-8837-fda5e7fdc5e7: amount=$50.0, method=DEBIT_CARD
+14:00:19.358 [main] INFO com.skyhigh.core.service.PaymentService -- Mock payment processing... Transaction ID: TXN-4B01F98B
+14:00:19.862 [main] INFO com.skyhigh.core.service.PaymentService -- Payment successful for check-in 55ed71b7-4a43-446f-8837-fda5e7fdc5e7: transaction=TXN-4B01F98B, amount=$50.0
+14:00:19.871 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in ac4e72e5-fbce-4947-b803-f10b1caebdec: amount=$50.0, method=CREDIT_CARD
+14:00:19.878 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in db5a5cf5-07c0-4d1d-9f1e-0c8119c86fa9: amount=$50.0, method=CREDIT_CARD
+14:00:19.878 [main] INFO com.skyhigh.core.service.PaymentService -- Mock payment processing... Transaction ID: TXN-FD6EE5D6
+14:00:20.386 [main] INFO com.skyhigh.core.service.PaymentService -- Payment successful for check-in db5a5cf5-07c0-4d1d-9f1e-0c8119c86fa9: transaction=TXN-FD6EE5D6, amount=$50.0
+14:00:20.393 [main] INFO com.skyhigh.core.service.PaymentService -- Processing payment for check-in a7066147-9e8f-46e7-b783-a945037f7f3b: amount=$50.0, method=CREDIT_CARD
+14:00:20.393 [main] INFO com.skyhigh.core.service.PaymentService -- Mock payment processing... Transaction ID: TXN-3D5798E0
+14:00:20.897 [main] INFO com.skyhigh.core.service.PaymentService -- Payment successful for check-in a7066147-9e8f-46e7-b783-a945037f7f3b: transaction=TXN-3D5798E0, amount=$50.0
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.607 s - in com.skyhigh.core.service.PaymentServiceTest
+[INFO] Running com.skyhigh.core.service.SeatHoldServiceTest
+14:00:21.293 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in e7963954-8855-4709-909b-c6f30860f727
+14:00:21.293 [main] INFO com.skyhigh.core.service.SeatHoldService -- Seat 12A successfully held for check-in e7963954-8855-4709-909b-c6f30860f727 until 2026-03-18T08:32:21.293485100Z
+14:00:21.309 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in f3263a1b-bce3-41fb-89ec-11d383b0daaf
+14:00:21.309 [main] INFO com.skyhigh.core.service.SeatHoldService -- Seat 12A successfully held for check-in f3263a1b-bce3-41fb-89ec-11d383b0daaf until 2026-03-18T08:32:21.309470Z
+14:00:21.309 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in e7a2bcc2-5544-4526-a124-ccd7c0e5068e
+14:00:21.333 [main] INFO com.skyhigh.core.service.SeatHoldService -- Confirming hold 998a9979-46b5-41f1-ac94-2a091167b1af for check-in dde3a463-1c1a-4ae4-a2d3-baa690cd712a
+14:00:21.333 [main] INFO com.skyhigh.core.service.SeatHoldService -- Hold 998a9979-46b5-41f1-ac94-2a091167b1af confirmed. Seat 12A permanently assigned to check-in dde3a463-1c1a-4ae4-a2d3-baa690cd712a
+14:00:21.341 [main] INFO com.skyhigh.core.service.SeatHoldService -- Confirming hold 56b658cf-e8be-4249-8903-4b144fd54b48 for check-in 4993af84-f873-48d3-8536-d8547db0a982
+14:00:21.341 [main] WARN com.skyhigh.core.service.SeatHoldService -- Hold 56b658cf-e8be-4249-8903-4b144fd54b48 has expired
+14:00:21.341 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in d5e2df32-8fdc-4a8f-a4a5-a78693cafbda
+14:00:21.357 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in 3d6ced5f-4f99-4603-bbe6-70cc7a6545f2
+14:00:21.357 [main] WARN com.skyhigh.core.service.SeatHoldService -- Seat 12A is not available. Current status: CONFIRMED
+14:00:21.357 [main] INFO com.skyhigh.core.service.SeatHoldService -- Confirming hold 075bff60-9f89-44df-89d4-2e76fb2f2a91 for check-in 7c26d2a7-e6e1-4c3a-89d6-98d536aeeb8c
+14:00:21.373 [main] INFO com.skyhigh.core.service.SeatHoldService -- Releasing hold 7a36067c-044c-47db-b651-50b6021827a6
+14:00:21.380 [main] INFO com.skyhigh.core.service.SeatHoldService -- Seat 12A released back to AVAILABLE
+14:00:21.402 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in c0fa9651-b307-4503-af3a-6cc21be60d39
+14:00:21.402 [main] WARN com.skyhigh.core.service.SeatHoldService -- Seat 12A is not available. Current status: HELD
+14:00:21.410 [main] INFO com.skyhigh.core.service.SeatHoldService -- Confirming hold 8ddee101-1b9d-4962-834d-8ed90aeab48b for check-in 8b7e1672-c8ba-4dc6-8397-29867197b8eb
+14:00:21.423 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 12A for check-in b7404996-5d00-4136-ae3d-331e4f170229
+14:00:21.423 [main] INFO com.skyhigh.core.service.SeatHoldService -- Releasing previous hold 91953128-e84b-463e-823c-f4804172dae6 for check-in b7404996-5d00-4136-ae3d-331e4f170229
+14:00:21.423 [main] INFO com.skyhigh.core.service.SeatHoldService -- Releasing hold 91953128-e84b-463e-823c-f4804172dae6
+14:00:21.423 [main] INFO com.skyhigh.core.service.SeatHoldService -- Seat 11A released back to AVAILABLE
+14:00:21.423 [main] INFO com.skyhigh.core.service.SeatHoldService -- Seat 12A successfully held for check-in b7404996-5d00-4136-ae3d-331e4f170229 until 2026-03-18T08:32:21.423657200Z
+14:00:21.439 [main] INFO com.skyhigh.core.service.SeatHoldService -- Attempting to hold seat 99Z for check-in 408a7f17-d62e-4c26-b57c-ef7475c87e88
+14:00:21.458 [main] INFO com.skyhigh.core.service.SeatHoldService -- Confirming hold 7fc6f77e-1285-490b-859e-b3d44dfa4006 for check-in d016ce35-d5c1-4aec-b4cf-fda8f95599f1
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.552 s - in com.skyhigh.core.service.SeatHoldServiceTest
+[INFO] Running com.skyhigh.core.service.SeatServiceTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.063 s - in com.skyhigh.core.service.SeatServiceTest
+[INFO] Running com.skyhigh.core.SkyHighCoreApplicationTests
+14:00:22.453 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.skyhigh.core.SkyHighCoreApplicationTests]: SkyHighCoreApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+14:00:22.945 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.skyhigh.core.SkyHighCoreApplication for test class com.skyhigh.core.SkyHighCoreApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.3)
+
+2026-03-18 14:00:24 - Starting SkyHighCoreApplicationTests using Java 21.0.8 with PID 16088 (started by 91878 in C:\Users\91878\Downloads\skyhigh-backend)
+2026-03-18 14:00:24 - Running with Spring Boot v3.2.3, Spring v6.1.4
+2026-03-18 14:00:24 - The following 1 profile is active: "test"
+2026-03-18 14:00:31 - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-03-18 14:00:31 - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-18 14:00:32 - Finished Spring Data repository scanning in 583 ms. Found 6 JPA repository interfaces.
+2026-03-18 14:00:32 - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-03-18 14:00:32 - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-03-18 14:00:32 - Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.skyhigh.core.repository.BaggageRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-18 14:00:32 - Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.skyhigh.core.repository.CheckInRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-18 14:00:32 - Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.skyhigh.core.repository.FlightRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-18 14:00:32 - Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.skyhigh.core.repository.PassengerRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-18 14:00:32 - Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.skyhigh.core.repository.SeatHoldRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-18 14:00:32 - Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.skyhigh.core.repository.SeatRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-18 14:00:32 - Finished Spring Data repository scanning in 15 ms. Found 0 Redis repository interfaces.
+2026-03-18 14:00:35 - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-18 14:00:35 - HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-03-18 14:00:35 - HHH000026: Second-level cache disabled
+2026-03-18 14:00:36 - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-18 14:00:36 - HikariPool-1 - Starting...
+2026-03-18 14:00:36 - HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-03-18 14:00:36 - HikariPool-1 - Start completed.
+2026-03-18 14:00:36 - HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-18 14:00:39 - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-18 14:00:39 - 
+    drop table if exists baggage cascade 
+2026-03-18 14:00:39 - 
+    drop table if exists check_ins cascade 
+2026-03-18 14:00:39 - 
+    drop table if exists flights cascade 
+2026-03-18 14:00:39 - 
+    drop table if exists passengers cascade 
+2026-03-18 14:00:39 - 
+    drop table if exists seat_holds cascade 
+2026-03-18 14:00:39 - 
+    drop table if exists seats cascade 
+2026-03-18 14:00:39 - 
+    create table baggage (
+        excess_fee numeric(10,2),
+        excess_weight numeric(10,2),
+        pieces integer not null,
+        weight numeric(10,2) not null,
+        validated_at timestamp(6) with time zone not null,
+        baggage_id uuid not null,
+        check_in_id uuid not null,
+        payment_transaction_id varchar(100),
+        primary key (baggage_id)
+    )
+2026-03-18 14:00:39 - 
+    create table check_ins (
+        baggage_weight numeric(10,2),
+        payment_required boolean,
+        completed_at timestamp(6) with time zone,
+        created_at timestamp(6) with time zone not null,
+        booking_reference varchar(10) not null,
+        seat_number varchar(10),
+        check_in_id uuid not null,
+        flight_id varchar(20) not null,
+        payment_status varchar(20) check (payment_status in ('PENDING','SUCCESS','FAILED')),
+        status varchar(20) not null check (status in ('IN_PROGRESS','AWAITING_PAYMENT','PAYMENT_FAILED','COMPLETED','EXPIRED')),
+        passenger_id varchar(50) not null,
+        primary key (check_in_id),
+        constraint idx_checkin_passenger_flight unique (passenger_id, flight_id)
+    )
+2026-03-18 14:00:39 - 
+    create table flights (
+        destination varchar(3) not null,
+        origin varchar(3) not null,
+        arrival_time timestamp(6) with time zone not null,
+        check_in_closes_at timestamp(6) with time zone,
+        check_in_opens_at timestamp(6) with time zone,
+        departure_time timestamp(6) with time zone not null,
+        flight_number varchar(10) not null,
+        aircraft_type varchar(20) not null,
+        flight_id varchar(20) not null,
+        status varchar(20) not null check (status in ('SCHEDULED','BOARDING','DEPARTED','CANCELLED')),
+        primary key (flight_id)
+    )
+2026-03-18 14:00:39 - 
+    create table passengers (
+        phone varchar(20),
+        passenger_id varchar(50) not null,
+        first_name varchar(100) not null,
+        last_name varchar(100) not null,
+        email varchar(150) not null,
+        primary key (passenger_id)
+    )
+2026-03-18 14:00:39 - 
+    create table seat_holds (
+        confirmed_at timestamp(6) with time zone,
+        expires_at timestamp(6) with time zone not null,
+        held_at timestamp(6) with time zone not null,
+        check_in_id uuid not null,
+        hold_id uuid not null,
+        seat_id uuid not null,
+        status varchar(20) not null check (status in ('ACTIVE','EXPIRED','CONFIRMED','RELEASED')),
+        primary key (hold_id)
+    )
+2026-03-18 14:00:39 - 
+    create table seats (
+        column_letter varchar(2) not null,
+        price numeric(10,2) not null,
+        row_number integer not null,
+        version bigint,
+        seat_number varchar(10) not null,
+        seat_id uuid not null,
+        flight_id varchar(20) not null,
+        position varchar(20) not null check (position in ('WINDOW','MIDDLE','AISLE')),
+        seat_class varchar(20) not null check (seat_class in ('ECONOMY','BUSINESS','FIRST')),
+        status varchar(20) not null check (status in ('AVAILABLE','HELD','CONFIRMED')),
+        primary key (seat_id)
+    )
+2026-03-18 14:00:39 - 
+    create index idx_baggage_checkin 
+       on baggage (check_in_id)
+2026-03-18 14:00:39 - 
+    create index idx_checkin_status 
+       on check_ins (status)
+2026-03-18 14:00:39 - 
+    create index idx_hold_seat 
+       on seat_holds (seat_id)
+2026-03-18 14:00:39 - 
+    create index idx_hold_checkin 
+       on seat_holds (check_in_id)
+2026-03-18 14:00:39 - 
+    create index idx_hold_status_expires 
+       on seat_holds (status, expires_at)
+2026-03-18 14:00:39 - 
+    create index idx_seat_flight_number 
+       on seats (flight_id, seat_number)
+2026-03-18 14:00:39 - 
+    create index idx_seat_status 
+       on seats (status)
+2026-03-18 14:00:39 - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-18 14:00:41 - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-18 14:00:46 - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-18 14:00:50 - Exposing 3 endpoint(s) beneath base path '/actuator'
+2026-03-18 14:00:50 - Started SkyHighCoreApplicationTests in 26.587 seconds (process running for 42.453)
+2026-03-18 14:00:50 - Unexpected exception
+org.springframework.jdbc.BadSqlGrammarException: PreparedStatementCallback; bad SQL grammar [INSERT INTO shedlock(name, lock_until, locked_at, locked_by) VALUES(?, TIMESTAMPADD(MICROSECOND, ?, CURRENT_TIMESTAMP(3)), CURRENT_TIMESTAMP(3), ?)]
+	at org.springframework.jdbc.support.SQLExceptionSubclassTranslator.doTranslate(SQLExceptionSubclassTranslator.java:103)
+	at org.springframework.jdbc.support.AbstractFallbackSQLExceptionTranslator.translate(AbstractFallbackSQLExceptionTranslator.java:107)
+	at org.springframework.jdbc.core.JdbcTemplate.translateException(JdbcTemplate.java:1548)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:677)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:970)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:991)
+	at org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate.update(NamedParameterJdbcTemplate.java:337)
+	at org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate.update(NamedParameterJdbcTemplate.java:342)
+	at net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateStorageAccessor.lambda$execute$0(JdbcTemplateStorageAccessor.java:119)
+	at org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:140)
+	at net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateStorageAccessor.execute(JdbcTemplateStorageAccessor.java:119)
+	at net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateStorageAccessor.insertRecord(JdbcTemplateStorageAccessor.java:68)
+	at net.javacrumbs.shedlock.support.StorageBasedLockProvider.doLock(StorageBasedLockProvider.java:79)
+	at net.javacrumbs.shedlock.support.StorageBasedLockProvider.lock(StorageBasedLockProvider.java:62)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:351)
+	at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:213)
+	at jdk.proxy2/jdk.proxy2.$Proxy179.lock(Unknown Source)
+	at net.javacrumbs.shedlock.core.DefaultLockingTaskExecutor.executeWithLock(DefaultLockingTaskExecutor.java:66)
+	at net.javacrumbs.shedlock.spring.aop.MethodProxyScheduledLockAdvisor$LockingInterceptor.invoke(MethodProxyScheduledLockAdvisor.java:83)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.cache.interceptor.CacheInterceptor.lambda$invoke$0(CacheInterceptor.java:64)
+	at org.springframework.cache.interceptor.CacheAspectSupport.invokeOperation(CacheAspectSupport.java:416)
+	at org.springframework.cache.interceptor.CacheAspectSupport.evaluate(CacheAspectSupport.java:545)
+	at org.springframework.cache.interceptor.CacheAspectSupport.execute(CacheAspectSupport.java:433)
+	at org.springframework.cache.interceptor.CacheAspectSupport.execute(CacheAspectSupport.java:395)
+	at org.springframework.cache.interceptor.CacheInterceptor.invoke(CacheInterceptor.java:74)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at com.skyhigh.core.scheduled.SeatHoldExpirationJob$$SpringCGLIB$$0.expireExpiredHolds(<generated>)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:130)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$2(ScheduledMethodRunnable.java:124)
+	at io.micrometer.observation.Observation.observe(Observation.java:499)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:124)
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "SHEDLOCK" not found; SQL statement:
+INSERT INTO shedlock(name, lock_until, locked_at, locked_by) VALUES(?, TIMESTAMPADD(MICROSECOND, ?, CURRENT_TIMESTAMP(3)), CURRENT_TIMESTAMP(3), ?) [42102-224]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:8064)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:8035)
+	at org.h2.command.Parser.readTableOrView(Parser.java:8024)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7990)
+	at org.h2.command.Parser.parseInsert(Parser.java:1540)
+	at org.h2.command.Parser.parsePrepared(Parser.java:719)
+	at org.h2.command.Parser.parse(Parser.java:592)
+	at org.h2.command.Parser.parse(Parser.java:564)
+	at org.h2.command.Parser.prepareCommand(Parser.java:483)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:639)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:559)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1166)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:316)
+	at com.zaxxer.hikari.pool.ProxyConnection.prepareStatement(ProxyConnection.java:327)
+	at com.zaxxer.hikari.pool.HikariProxyConnection.prepareStatement(HikariProxyConnection.java)
+	at org.springframework.jdbc.core.PreparedStatementCreatorFactory$PreparedStatementCreatorImpl.createPreparedStatement(PreparedStatementCreatorFactory.java:239)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:656)
+	... 42 common frames omitted
+2026-03-18 14:00:50 - Unexpected error occurred in scheduled task
+org.springframework.jdbc.BadSqlGrammarException: PreparedStatementCallback; bad SQL grammar [UPDATE shedlock SET lock_until = TIMESTAMPADD(MICROSECOND, ?, CURRENT_TIMESTAMP(3)), locked_at = CURRENT_TIMESTAMP(3), locked_by = ? WHERE name = ? AND lock_until <= CURRENT_TIMESTAMP(3)]
+	at org.springframework.jdbc.support.SQLExceptionSubclassTranslator.doTranslate(SQLExceptionSubclassTranslator.java:103)
+	at org.springframework.jdbc.support.AbstractFallbackSQLExceptionTranslator.translate(AbstractFallbackSQLExceptionTranslator.java:107)
+	at org.springframework.jdbc.core.JdbcTemplate.translateException(JdbcTemplate.java:1548)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:677)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:970)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:991)
+	at org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate.update(NamedParameterJdbcTemplate.java:337)
+	at org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate.update(NamedParameterJdbcTemplate.java:342)
+	at net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateStorageAccessor.lambda$execute$0(JdbcTemplateStorageAccessor.java:119)
+	at org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:140)
+	at net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateStorageAccessor.execute(JdbcTemplateStorageAccessor.java:119)
+	at net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateStorageAccessor.updateRecord(JdbcTemplateStorageAccessor.java:82)
+	at net.javacrumbs.shedlock.support.StorageBasedLockProvider.doLock(StorageBasedLockProvider.java:90)
+	at net.javacrumbs.shedlock.support.StorageBasedLockProvider.lock(StorageBasedLockProvider.java:62)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:351)
+	at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:213)
+	at jdk.proxy2/jdk.proxy2.$Proxy179.lock(Unknown Source)
+	at net.javacrumbs.shedlock.core.DefaultLockingTaskExecutor.executeWithLock(DefaultLockingTaskExecutor.java:66)
+	at net.javacrumbs.shedlock.spring.aop.MethodProxyScheduledLockAdvisor$LockingInterceptor.invoke(MethodProxyScheduledLockAdvisor.java:83)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.cache.interceptor.CacheInterceptor.lambda$invoke$0(CacheInterceptor.java:64)
+	at org.springframework.cache.interceptor.CacheAspectSupport.invokeOperation(CacheAspectSupport.java:416)
+	at org.springframework.cache.interceptor.CacheAspectSupport.evaluate(CacheAspectSupport.java:545)
+	at org.springframework.cache.interceptor.CacheAspectSupport.execute(CacheAspectSupport.java:433)
+	at org.springframework.cache.interceptor.CacheAspectSupport.execute(CacheAspectSupport.java:395)
+	at org.springframework.cache.interceptor.CacheInterceptor.invoke(CacheInterceptor.java:74)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:765)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:717)
+	at com.skyhigh.core.scheduled.SeatHoldExpirationJob$$SpringCGLIB$$0.expireExpiredHolds(<generated>)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:130)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$2(ScheduledMethodRunnable.java:124)
+	at io.micrometer.observation.Observation.observe(Observation.java:499)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:124)
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:358)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "SHEDLOCK" not found; SQL statement:
+UPDATE shedlock SET lock_until = TIMESTAMPADD(MICROSECOND, ?, CURRENT_TIMESTAMP(3)), locked_at = CURRENT_TIMESTAMP(3), locked_by = ? WHERE name = ? AND lock_until <= CURRENT_TIMESTAMP(3) [42102-224]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:8064)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:8035)
+	at org.h2.command.Parser.readTableOrView(Parser.java:8024)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7990)
+	at org.h2.command.Parser.readSimpleTableFilter(Parser.java:1094)
+	at org.h2.command.Parser.parseUpdate(Parser.java:1018)
+	at org.h2.command.Parser.parsePrepared(Parser.java:765)
+	at org.h2.command.Parser.parse(Parser.java:592)
+	at org.h2.command.Parser.parse(Parser.java:564)
+	at org.h2.command.Parser.prepareCommand(Parser.java:483)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:639)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:559)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1166)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:316)
+	at com.zaxxer.hikari.pool.ProxyConnection.prepareStatement(ProxyConnection.java:327)
+	at com.zaxxer.hikari.pool.HikariProxyConnection.prepareStatement(HikariProxyConnection.java)
+	at org.springframework.jdbc.core.PreparedStatementCreatorFactory$PreparedStatementCreatorImpl.createPreparedStatement(PreparedStatementCreatorFactory.java:239)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:656)
+	... 42 common frames omitted
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 28.753 s - in com.skyhigh.core.SkyHighCoreApplicationTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 69, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco:0.8.11:report (report) @ skyhigh-core ---
+[INFO] Loading execution data file C:\Users\91878\Downloads\skyhigh-backend\target\jacoco.exec
+[INFO] Analyzed bundle 'SkyHigh Core - Digital Check-In System' with 74 classes
+[INFO] 
+[INFO] --- jar:3.3.0:jar (default-jar) @ skyhigh-core ---
+[INFO] Building jar: C:\Users\91878\Downloads\skyhigh-backend\target\skyhigh-core-1.0.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:3.2.3:repackage (repackage) @ skyhigh-core ---
+[INFO] Replacing main artifact C:\Users\91878\Downloads\skyhigh-backend\target\skyhigh-core-1.0.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\91878\Downloads\skyhigh-backend\target\skyhigh-core-1.0.0-SNAPSHOT.jar.original
+[INFO] 
+[INFO] --- jacoco:0.8.11:check (check) @ skyhigh-core ---
+[INFO] Loading execution data file C:\Users\91878\Downloads\skyhigh-backend\target\jacoco.exec
+[INFO] Analyzed bundle 'skyhigh-core' with 7 classes
+[INFO] All coverage checks have been met.
+[INFO] 
+[INFO] --- install:3.1.1:install (default-install) @ skyhigh-core ---
+[INFO] Installing C:\Users\91878\Downloads\skyhigh-backend\pom.xml to C:\Users\91878\.m2\repository\com\skyhigh\skyhigh-core\1.0.0-SNAPSHOT\skyhigh-core-1.0.0-SNAPSHOT.pom
+[INFO] Installing C:\Users\91878\Downloads\skyhigh-backend\target\skyhigh-core-1.0.0-SNAPSHOT.jar to C:\Users\91878\.m2\repository\com\skyhigh\skyhigh-core\1.0.0-SNAPSHOT\skyhigh-core-1.0.0-SNAPSHOT.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  05:11 min
+[INFO] Finished at: 2026-03-18T14:01:03+05:30
+[INFO] ------------------------------------------------------------------------

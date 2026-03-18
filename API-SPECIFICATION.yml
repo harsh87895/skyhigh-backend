@@ -1,0 +1,762 @@
+
+openapi: 3.0.3
+info:
+  title: SkyHigh Core - Digital Check-In API
+  description: |
+    REST API for SkyHigh Airlines digital check-in system.
+    
+    **Key Features:**
+    - Conflict-free seat assignment with optimistic locking
+    - 120-second time-bound seat holds
+    - High-performance seat map caching (P95 < 1s)
+    - Automated baggage validation and fee calculation
+    - Mock payment processing
+    
+    **Base URL:** `http://localhost:8080`
+
+  version: 1.0.0
+  contact:
+    name: SkyHigh Airlines Engineering
+    email: engineering@skyhigh-airlines.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.skyhigh-airlines.com
+    description: Production server (future)
+
+tags:
+  - name: Check-In
+    description: Check-in management operations
+  - name: Flights
+    description: Flight and seat map operations
+  - name: Seats
+    description: Seat reservation and confirmation
+  - name: Baggage
+    description: Baggage validation and fee calculation
+  - name: Payment
+    description: Payment processing (MOCK)
+
+paths:
+  /api/v1/check-in/start:
+    post:
+      tags:
+        - Check-In
+      summary: Start check-in
+      description: Initiate a new check-in session for a passenger
+      operationId: startCheckIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInRequest'
+            examples:
+              basicCheckIn:
+                summary: Basic check-in request
+                value:
+                  passengerId: "P12345"
+                  flightId: "FL001"
+                  bookingReference: "ABC123"
+      responses:
+        '201':
+          description: Check-in successfully started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponse'
+              examples:
+                success:
+                  value:
+                    checkInId: "550e8400-e29b-41d4-a716-446655440000"
+                    passengerId: "P12345"
+                    flightId: "FL001"
+                    bookingReference: "ABC123"
+                    status: "INITIATED"
+                    createdAt: "2026-03-15T10:00:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Passenger or flight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Check-in already exists for this passenger and flight
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/check-in/{checkInId}:
+    get:
+      tags:
+        - Check-In
+      summary: Get check-in details
+      description: Retrieve details of a specific check-in session
+      operationId: getCheckIn
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Check-in ID
+      responses:
+        '200':
+          description: Check-in details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponse'
+        '404':
+          description: Check-in not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/check-in/{checkInId}/complete:
+    put:
+      tags:
+        - Check-In
+      summary: Complete check-in
+      description: Finalize the check-in process
+      operationId: completeCheckIn
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Check-in completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInResponse'
+        '404':
+          description: Check-in not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/flights/{flightId}/seats:
+    get:
+      tags:
+        - Flights
+      summary: Get seat map
+      description: |
+        Retrieve seat availability for a flight. Results are cached for 2 seconds.
+        
+        **Performance:** P95 < 1 second
+      operationId: getSeatMap
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Flight ID
+          example: "FL001"
+        - name: seatClass
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST]
+          description: Filter by seat class
+        - name: position
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [WINDOW, MIDDLE, AISLE]
+          description: Filter by seat position
+      responses:
+        '200':
+          description: Seat map retrieved successfully (may be from cache)
+          headers:
+            X-Cache-Status:
+              description: Cache hit or miss
+              schema:
+                type: string
+                enum: [HIT, MISS]
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeatMapResponse'
+              examples:
+                fullSeatMap:
+                  value:
+                    flightId: "FL001"
+                    totalSeats: 180
+                    availableSeats: 45
+                    seats:
+                      - seatId: "550e8400-e29b-41d4-a716-446655440001"
+                        seatNumber: "12A"
+                        seatClass: "ECONOMY"
+                        position: "WINDOW"
+                        status: "AVAILABLE"
+                        price: 50.00
+                      - seatId: "550e8400-e29b-41d4-a716-446655440002"
+                        seatNumber: "12B"
+                        seatClass: "ECONOMY"
+                        position: "MIDDLE"
+                        status: "HELD"
+                        price: 50.00
+        '404':
+          description: Flight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/seats/hold:
+    post:
+      tags:
+        - Seats
+      summary: Hold a seat
+      description: |
+        Reserve a seat for exactly 120 seconds. Uses optimistic locking to prevent conflicts.
+        
+        **Concurrency:** Only one passenger can hold a seat at a time.
+      operationId: holdSeat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HoldSeatRequest'
+            examples:
+              holdSeat:
+                value:
+                  seatId: "550e8400-e29b-41d4-a716-446655440001"
+                  checkInId: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '201':
+          description: Seat successfully held
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HoldSeatResponse'
+              examples:
+                success:
+                  value:
+                    holdId: "550e8400-e29b-41d4-a716-446655440002"
+                    seatNumber: "12A"
+                    status: "HELD"
+                    heldAt: "2026-03-15T10:05:00Z"
+                    expiresAt: "2026-03-15T10:07:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Seat or check-in not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Seat unavailable (already held or confirmed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                seatUnavailable:
+                  value:
+                    error: "SEAT_UNAVAILABLE"
+                    message: "Seat 12A is already held by another passenger"
+                    timestamp: "2026-03-15T10:05:00Z"
+                    path: "/api/v1/seats/hold"
+
+  /api/v1/seats/confirm:
+    post:
+      tags:
+        - Seats
+      summary: Confirm a held seat
+      description: |
+        Permanently assign a held seat to the passenger. 
+        Hold must not be expired (< 120 seconds since hold).
+      operationId: confirmSeat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmSeatRequest'
+            examples:
+              confirmSeat:
+                value:
+                  holdId: "550e8400-e29b-41d4-a716-446655440002"
+      responses:
+        '200':
+          description: Seat confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmSeatResponse'
+              examples:
+                success:
+                  value:
+                    seatNumber: "12A"
+                    status: "CONFIRMED"
+                    confirmedAt: "2026-03-15T10:06:30Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Hold not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Hold expired or already confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/baggage/validate:
+    post:
+      tags:
+        - Baggage
+      summary: Validate baggage
+      description: |
+        Validate baggage weight and calculate excess fees.
+        
+        **Rules:**
+        - Free allowance: 25 kg
+        - Excess fee: $10 per kg over limit
+        - If weight > 25kg, payment is required before continuing
+      operationId: validateBaggage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaggageRequest'
+            examples:
+              withinLimit:
+                summary: Baggage within free limit
+                value:
+                  checkInId: "550e8400-e29b-41d4-a716-446655440000"
+                  weight: 20.0
+                  pieces: 1
+              exceedsLimit:
+                summary: Baggage exceeds free limit
+                value:
+                  checkInId: "550e8400-e29b-41d4-a716-446655440000"
+                  weight: 30.0
+                  pieces: 2
+      responses:
+        '200':
+          description: Baggage validated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaggageResponse'
+              examples:
+                withinLimit:
+                  summary: No excess fee
+                  value:
+                    baggageId: "550e8400-e29b-41d4-a716-446655440003"
+                    weight: 20.0
+                    pieces: 1
+                    excessWeight: 0.0
+                    excessFee: 0.0
+                    paymentRequired: false
+                    message: "Baggage within free allowance"
+                exceedsLimit:
+                  summary: Excess fee required
+                  value:
+                    baggageId: "550e8400-e29b-41d4-a716-446655440003"
+                    weight: 30.0
+                    pieces: 2
+                    excessWeight: 5.0
+                    excessFee: 50.0
+                    paymentRequired: true
+                    message: "Excess baggage fee required: $50.00"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Check-in not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/baggage/{checkInId}:
+    get:
+      tags:
+        - Baggage
+      summary: Get baggage details
+      description: Retrieve baggage information for a check-in
+      operationId: getBaggage
+      parameters:
+        - name: checkInId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Baggage details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaggageResponse'
+        '404':
+          description: Baggage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/payment/process:
+    post:
+      tags:
+        - Payment
+      summary: Process payment (MOCK)
+      description: |
+        Process excess baggage payment. 
+        
+        **NOTE:** This is a MOCK endpoint that always succeeds. 
+        In production, this would integrate with a real payment gateway.
+      operationId: processPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            examples:
+              payment:
+                value:
+                  checkInId: "550e8400-e29b-41d4-a716-446655440000"
+                  amount: 50.0
+      responses:
+        '200':
+          description: Payment processed successfully (MOCK)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+              examples:
+                success:
+                  value:
+                    transactionId: "TXN-550e8400-e29b-41d4-a716-446655440004"
+                    status: "SUCCESS"
+                    amount: 50.0
+                    processedAt: "2026-03-15T10:07:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    CheckInRequest:
+      type: object
+      required:
+        - passengerId
+        - flightId
+        - bookingReference
+      properties:
+        passengerId:
+          type: string
+          description: Unique passenger identifier
+          example: "P12345"
+        flightId:
+          type: string
+          description: Flight identifier
+          example: "FL001"
+        bookingReference:
+          type: string
+          description: Booking confirmation code
+          example: "ABC123"
+          minLength: 6
+          maxLength: 10
+
+    CheckInResponse:
+      type: object
+      properties:
+        checkInId:
+          type: string
+          format: uuid
+          description: Unique check-in identifier
+        passengerId:
+          type: string
+          description: Passenger ID
+        flightId:
+          type: string
+          description: Flight ID
+        bookingReference:
+          type: string
+          description: Booking reference
+        seatNumber:
+          type: string
+          description: Assigned seat number (after confirmation)
+          example: "12A"
+        status:
+          type: string
+          enum: [INITIATED, AWAITING_PAYMENT, SEAT_SELECTED, COMPLETED]
+          description: Check-in status
+        baggageWeight:
+          type: number
+          format: double
+          description: Declared baggage weight (kg)
+        paymentRequired:
+          type: boolean
+          description: Whether excess baggage payment is required
+        createdAt:
+          type: string
+          format: date-time
+          description: Check-in creation timestamp
+        completedAt:
+          type: string
+          format: date-time
+          description: Check-in completion timestamp
+
+    HoldSeatRequest:
+      type: object
+      required:
+        - seatId
+        - checkInId
+      properties:
+        seatId:
+          type: string
+          format: uuid
+          description: Seat to hold
+        checkInId:
+          type: string
+          format: uuid
+          description: Associated check-in session
+
+    HoldSeatResponse:
+      type: object
+      properties:
+        holdId:
+          type: string
+          format: uuid
+          description: Unique hold identifier
+        seatNumber:
+          type: string
+          description: Seat number
+          example: "12A"
+        status:
+          type: string
+          enum: [HELD]
+          description: Hold status
+        heldAt:
+          type: string
+          format: date-time
+          description: Hold start time
+        expiresAt:
+          type: string
+          format: date-time
+          description: Hold expiration time (heldAt + 120 seconds)
+
+    ConfirmSeatRequest:
+      type: object
+      required:
+        - holdId
+      properties:
+        holdId:
+          type: string
+          format: uuid
+          description: Hold to confirm
+
+    ConfirmSeatResponse:
+      type: object
+      properties:
+        seatNumber:
+          type: string
+          description: Confirmed seat number
+          example: "12A"
+        status:
+          type: string
+          enum: [CONFIRMED]
+          description: Seat status
+        confirmedAt:
+          type: string
+          format: date-time
+          description: Confirmation timestamp
+
+    SeatMapResponse:
+      type: object
+      properties:
+        flightId:
+          type: string
+          description: Flight identifier
+        totalSeats:
+          type: integer
+          description: Total number of seats on the flight
+        availableSeats:
+          type: integer
+          description: Number of available seats
+        seats:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeatInfo'
+
+    SeatInfo:
+      type: object
+      properties:
+        seatId:
+          type: string
+          format: uuid
+          description: Unique seat identifier
+        seatNumber:
+          type: string
+          description: Seat number (e.g., "12A")
+          example: "12A"
+        seatClass:
+          type: string
+          enum: [ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST]
+          description: Seat class
+        position:
+          type: string
+          enum: [WINDOW, MIDDLE, AISLE]
+          description: Seat position
+        status:
+          type: string
+          enum: [AVAILABLE, HELD, CONFIRMED]
+          description: Current seat status
+        price:
+          type: number
+          format: double
+          description: Seat price (USD)
+
+    BaggageRequest:
+      type: object
+      required:
+        - checkInId
+        - weight
+        - pieces
+      properties:
+        checkInId:
+          type: string
+          format: uuid
+          description: Associated check-in session
+        weight:
+          type: number
+          format: double
+          description: Total baggage weight (kg)
+          minimum: 0
+          maximum: 100
+        pieces:
+          type: integer
+          description: Number of baggage pieces
+          minimum: 0
+          maximum: 10
+
+    BaggageResponse:
+      type: object
+      properties:
+        baggageId:
+          type: string
+          format: uuid
+          description: Unique baggage identifier
+        weight:
+          type: number
+          format: double
+          description: Total weight (kg)
+        pieces:
+          type: integer
+          description: Number of pieces
+        excessWeight:
+          type: number
+          format: double
+          description: Weight over 25kg free limit
+        excessFee:
+          type: number
+          format: double
+          description: Excess baggage fee (USD)
+        paymentRequired:
+          type: boolean
+          description: Whether payment is required
+        message:
+          type: string
+          description: Human-readable message
+
+    PaymentRequest:
+      type: object
+      required:
+        - checkInId
+        - amount
+      properties:
+        checkInId:
+          type: string
+          format: uuid
+          description: Associated check-in session
+        amount:
+          type: number
+          format: double
+          description: Payment amount (USD)
+          minimum: 0
+
+    PaymentResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          description: Payment transaction identifier
+          example: "TXN-550e8400-e29b-41d4-a716-446655440004"
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+          description: Payment status
+        amount:
+          type: number
+          format: double
+          description: Payment amount (USD)
+        processedAt:
+          type: string
+          format: date-time
+          description: Payment processing timestamp
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: "SEAT_UNAVAILABLE"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Seat 12A is already held by another passenger"
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+        path:
+          type: string
+          description: Request path that caused the error
+          example: "/api/v1/seats/hold"
+

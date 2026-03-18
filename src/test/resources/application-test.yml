@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: skyhigh-core-test
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    type: simple
+
+# Disable Redis in tests
+management:
+  health:
+    redis:
+      enabled: false
+
+app:
+  seat-hold:
+    duration-seconds: 120
+    expiration-job-rate: 10000
+
+  baggage:
+    max-free-weight: 25.0
+    fee-per-kg: 10.0
+
+logging:
+  level:
+    root: INFO
+    com.skyhigh.core: DEBUG
+
