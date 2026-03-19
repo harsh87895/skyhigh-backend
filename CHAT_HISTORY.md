@@ -9,7 +9,116 @@
 ---
 
 **User:**
-I want to build a backend system for an airline digital check-in. The system should handle seat reservations, baggage validation, and payments. Can you help me design this?
+1. Business Scenario
+
+SkyHigh Airlines is transforming its airport self-check-in experience to handle heavy peak-hour traffic. During popular flight check-in windows, hundreds of passengers attempt to select seats, add baggage, and complete check-in simultaneously.
+
+The business requires a fast, safe, and automated digital check-in system that:
+
+· Prevents seat conflicts
+
+· Handles short-lived seat reservations
+
+· Supports baggage fee handling
+
+· Detects abusive access patterns
+
+· Scales reliably during check-in rushes
+
+You are tasked with building SkyHigh Core, the backend service responsible for managing this experience.
+
+2. Core Functional Requirements
+
+2.1 Seat Availability & Lifecycle Management
+
+Each seat on a flight follows a defined lifecycle.
+
+Seat States
+
+AVAILABLE → HELD → CONFIRMED
+
+· AVAILABLE: Seat can be viewed and selected
+
+· HELD: Seat is temporarily reserved for a passenger
+
+· CONFIRMED: Seat is permanently assigned
+
+Business Rules
+
+· A seat can only be held if it is currently AVAILABLE
+
+· A seat in HELD state is exclusive to one passenger
+
+· A CONFIRMED seat can never change state
+
+2.2 Time-Bound Seat Hold (2 Minutes)
+
+When a passenger selects a seat:
+
+· The system must reserve the seat for exactly 120 seconds
+
+· During this time:
+
+o No other passenger can reserve or confirm the same seat
+
+· If the passenger does not complete check-in within the time window:
+
+o The seat must automatically become AVAILABLE again
+
+· This behavior must work reliably even during high traffic
+
+2.3 Conflict-Free Seat Assignment
+
+The system must provide the following hard guarantee:
+
+If multiple passengers attempt to reserve the same seat at the same time, only one reservation can succeed.
+
+· Seat assignment must remain correct regardless of request volume
+
+· No race condition should result in duplicate seat assignments
+
+· The system must remain consistent under concurrent usage
+
+2.4 Baggage Validation & Payment Pause
+
+During check-in, passengers may add baggage.
+
+Business Rules
+
+· Maximum allowed baggage weight: 25kg
+
+· If baggage weight exceeds the limit:
+
+o Check-in must be paused
+
+o Passenger must pay an additional baggage fee
+
+o Only after successful payment can check-in continue
+
+· A separate Weight service can be used for this.
+
+· Payment processing may be simulated as a separate service.
+
+The system must clearly reflect whether a check-in is:
+
+· In progress
+
+· Waiting for payment
+
+· Completed
+
+2.5 High-Performance Seat Map Access
+
+Seat map browsing is the most frequently used feature.
+
+Expectations:
+
+· Seat map data must be loaded quickly during peak usage. P95 should be less than 1 second.
+
+· The system must support hundreds of concurrent users.
+
+· Seat availability should be accurate and near real-time
+I want to build a backend system for an airline digital check-in. The system should handle seat reservations, baggage validation, and payments as shown above as requirement. Can you help me design this?
 
 **Copilot:**
 Absolutely! Let me help you design a robust airline digital check-in backend. Based on your requirements, here is what I propose:
